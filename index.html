@@ -1,113 +1,851 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vokabeltrainer – NEU</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vokabeltrainer (Vollbild-Karte + Tap-to-Reveal + Löschen)</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:5}
+    .wrap{max-width:980px;margin:0 auto;padding:14px 16px}
+    h1{font-size:18px;margin:0}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tab{border:1px solid #d8d9e6;background:#fff;border-radius:10px;padding:8px 10px;font-weight:700;cursor:pointer}
+    .tab.active{background:#111;color:#fff;border-color:#111}
+    main{padding:16px}
+    .grid{display:grid;gap:12px}
+    @media (min-width:860px){ .grid{grid-template-columns: 1.3fr 1fr} }
+    .card{background:#fff;border:1px solid #e7e7ef;border-radius:14px;padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;font-weight:800;color:#333}
+    input[type="text"], textarea, select{
+      width:100%;box-sizing:border-box;border:1px solid #d8d9e6;border-radius:12px;
+      padding:10px 12px;font-size:14px;background:#fff
+    }
+    textarea{min-height:110px;resize:vertical}
+    button{
+      border:1px solid #d8d9e6;background:#fff;border-radius:12px;
+      padding:10px 12px;font-weight:800;cursor:pointer
+    }
+    button.primary{background:#111;color:#fff;border-color:#111}
+    button.danger{background:#b00020;color:#fff;border-color:#b00020}
+    button.ghost{background:transparent}
+    .muted{color:#666;font-size:12px}
+    .small{font-size:12px}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{border:1px solid #eee;border-radius:12px;padding:10px}
+    .itemTop{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+    .itemLeft{min-width:0}
+    .front{font-weight:900}
+    .back{color:#333;margin-top:4px}
+    .pill{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:3px 8px;background:#fafafa}
+    .stars{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .starBtn{padding:6px 10px;border-radius:999px}
+    .starBtn.active{background:#111;color:#fff;border-color:#111}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
+    .kpi .num{font-size:18px;font-weight:900}
+    .divider{height:1px;background:#eee;margin:10px 0}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    details{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
+    summary{cursor:pointer;font-weight:900}
+    .ok{color:#0a7a0a;font-weight:800}
+    .warn{color:#b00020;font-weight:800}
 
-<style>
-  body { margin:0; font-family:system-ui,sans-serif; background:#0b0b0d; color:#f2f2f3; }
-  header { background:#111114; padding:12px; border-bottom:1px solid #23232a; display:flex; gap:10px; flex-wrap:wrap; }
-  button, textarea { background:#17171d; color:#f2f2f3; border:1px solid #2a2a33; border-radius:12px; padding:10px 12px; }
-  button { cursor:pointer; }
-  main { padding:12px; max-width:900px; margin:auto; }
-  textarea { width:100%; min-height:140px; font-size:16px; }
-  .card { background:#111114; border:1px solid #23232a; border-radius:18px; padding:14px; margin-bottom:12px; }
-  .muted { color:#b7b7c2; font-size:12px; }
-
-  /* Vollbild-Abfrage */
-  body.quiz header, body.quiz main { display:none; }
-  #quiz { display:none; }
-  body.quiz #quiz { display:flex; }
-  #quiz { position:fixed; inset:0; background:#0b0b0d; flex-direction:column; }
-  .qcard { flex:1; display:flex; align-items:center; justify-content:center; text-align:center; font-size:38px; font-weight:900; padding:20px; cursor:pointer; }
-  .answer { font-size:34px; font-weight:800; margin-top:20px; }
-  .hidden { display:none; }
-  .bottom { display:flex; gap:10px; justify-content:center; padding:12px; border-top:1px solid #23232a; }
-</style>
+    /* Vollbild-Karte */
+    .flashWrap{display:flex;flex-direction:column;gap:12px}
+    .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .flashCard{
+      height: calc(100vh - 270px);
+      min-height: 52vh;
+      display:flex;flex-direction:column;justify-content:center;align-items:center;
+      border:1px solid #e7e7ef;border-radius:18px;background:#fff;
+      padding:18px;text-align:center;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      cursor:pointer;
+      position:relative;
+    }
+    @media (max-width:480px){
+      .flashCard{ height: calc(100vh - 320px); }
+    }
+    .flashPrompt{
+      font-size:30px;font-weight:950;line-height:1.15;
+      max-width:880px;word-break:break-word;
+    }
+    .flashAnswer{
+      margin-top:16px;
+      font-size:22px;line-height:1.25;
+      max-width:880px;word-break:break-word;
+      color:#222;
+      display:none;
+      background:#f3f4f8;border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
+      width:100%;
+      box-sizing:border-box;
+    }
+    .flashAnswer.show{display:block}
+    .tapHint{margin-top:10px;font-size:12px;color:#666}
+    .flashControls{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center
+    }
+    .flashControls button{min-width:140px}
+    .flashStars{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+  </style>
 </head>
-
 <body>
-
-<!-- TEST-BANNER (muss sichtbar sein!) -->
-<div style="position:fixed;top:0;left:0;right:0;background:#ff0055;color:#fff;font-weight:900;text-align:center;padding:10px;z-index:9999;">
-NEUER TRAINER – TEST
-</div>
-
 <header>
-  <button onclick="enterQuiz()">Abfrage</button>
-  <button onclick="exitQuiz()">Karten</button>
+  <div class="wrap">
+    <h1>Vokabeltrainer</h1>
+    <div class="tabs">
+      <button class="tab active" id="tabManage">Eingabe & Verwaltung</button>
+      <button class="tab" id="tabLearn">Abfrage</button>
+      <button class="tab" id="tabData">Import/Export</button>
+    </div>
+    <div class="muted small" id="statusLine"></div>
+    <div class="muted small" id="storageInfo"></div>
+  </div>
 </header>
 
-<main>
-  <div class="card">
-    <div class="muted">Import: Deutsch;Spanisch</div>
-    <textarea id="import"></textarea>
-    <button onclick="importCards()">Importieren</button>
+<main class="wrap">
+  <!-- Manage -->
+  <div id="viewManage" class="grid">
+    <section class="card">
+      <h2 style="margin:0 0 10px 0;font-size:16px">Eingabe</h2>
+
+      <div class="grid" style="grid-template-columns:1fr;gap:10px">
+        <div>
+          <label for="inFront">Vorderseite (z. B. Deutsch)</label>
+          <input id="inFront" type="text" />
+        </div>
+        <div>
+          <label for="inBack">Rückseite (z. B. Spanisch)</label>
+          <input id="inBack" type="text" />
+        </div>
+
+        <div class="row">
+          <span class="pill">Sterne:</span>
+          <div class="stars" id="newStars">
+            <button class="starBtn active" data-stars="0" type="button">0</button>
+            <button class="starBtn" data-stars="1" type="button">⭐</button>
+            <button class="starBtn" data-stars="2" type="button">⭐⭐</button>
+            <button class="starBtn" data-stars="3" type="button">⭐⭐⭐</button>
+          </div>
+
+          <span class="pill">Startstatus:</span>
+          <div class="row" style="gap:6px">
+            <button id="btnSetUnknown" type="button" class="starBtn active">nicht gewusst</button>
+            <button id="btnSetKnown" type="button" class="starBtn">gewusst</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="primary" id="btnAdd">Hinzufügen</button>
+          <button id="btnAddStay">Hinzufügen & Felder leeren</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <details open>
+          <summary>Listen-Eingabe (mehrere Zeilen)</summary>
+          <p class="muted small" style="margin:8px 0 10px 0">
+            Pro Zeile: <span class="mono">Vorderseite;Rückseite</span>. Optional:
+            <span class="mono">;Sterne(0-3);Status(known/unknown)</span>
+          </p>
+          <textarea id="bulkEntry"></textarea>
+
+          <div class="row" style="align-items:flex-end">
+            <div style="flex:1 1 260px;min-width:220px">
+              <label>Wenn Sterne/Status fehlen, nutze:</label>
+              <div class="row" style="gap:8px">
+                <select id="bulkDefaultStars" style="width:auto">
+                  <option value="0">Sterne 0</option>
+                  <option value="1">Sterne 1</option>
+                  <option value="2">Sterne 2</option>
+                  <option value="3">Sterne 3</option>
+                </select>
+                <select id="bulkDefaultStatus" style="width:auto">
+                  <option value="unknown">Status: nicht gewusst</option>
+                  <option value="known">Status: gewusst</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row" style="gap:8px">
+              <button class="primary" id="btnBulkAdd">Liste hinzufügen</button>
+              <button id="btnBulkClear">Liste leeren</button>
+            </div>
+          </div>
+
+          <div class="muted small" id="bulkReport" style="margin-top:8px"></div>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 10px 0;font-size:16px">Übersicht</h2>
+      <div class="kpi">
+        <div class="box"><div class="muted">Karten</div><div class="num" id="kpiTotal">0</div></div>
+        <div class="box"><div class="muted">Nicht gewusst</div><div class="num" id="kpiUnknown">0</div></div>
+        <div class="box"><div class="muted">⭐/⭐⭐/⭐⭐⭐</div><div class="num" id="kpiStars">0</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row" style="justify-content:space-between">
+        <div style="flex:1 1 320px;min-width:220px">
+          <label for="search">Suche</label>
+          <input id="search" type="text" placeholder="Suche in Vorder- oder Rückseite…" />
+        </div>
+        <div style="flex:1 1 220px;min-width:220px">
+          <label for="filter">Filter</label>
+          <select id="filter">
+            <option value="all">Alle</option>
+            <option value="unknown">Nur nicht gewusst</option>
+            <option value="star1">Nur ⭐ (1 Stern)</option>
+            <option value="star2">Nur ⭐⭐ (2 Sterne)</option>
+            <option value="star3">Nur ⭐⭐⭐ (3 Sterne)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="list" id="cardList"></div>
+      <div class="muted small" id="emptyHint" style="display:none">Noch keine Karten.</div>
+    </section>
+  </div>
+
+  <!-- Learn -->
+  <div id="viewLearn" style="display:none">
+    <section class="card">
+      <div class="flashWrap">
+        <div class="flashTop">
+          <div class="row" style="gap:10px">
+            <span class="pill" id="progressPill">0 / 0</span>
+            <span class="pill" id="modePill">Modus: —</span>
+            <span class="pill" id="dirPill">Richtung: —</span>
+          </div>
+          <button id="btnBackToManage" class="ghost">⬅️ Zurück zur Eingabe</button>
+        </div>
+
+        <div class="row" style="align-items:flex-end">
+          <div style="flex:1 1 260px;min-width:220px">
+            <label for="learnMode">Lernmodus</label>
+            <select id="learnMode">
+              <option value="all">Alle Karten</option>
+              <option value="unknown">Nicht gewusst (nur)</option>
+              <option value="star1">Favoriten ⭐ (1 Stern)</option>
+              <option value="star2">Favoriten ⭐⭐ (2 Sterne)</option>
+              <option value="star3">Favoriten ⭐⭐⭐ (3 Sterne)</option>
+            </select>
+          </div>
+
+          <div style="flex:0 0 auto">
+            <label for="direction">Richtung</label>
+            <select id="direction">
+              <option value="front">Vorderseite → Rückseite</option>
+              <option value="back">Rückseite → Vorderseite</option>
+              <option value="mixed">Gemischt (beide Richtungen zufällig)</option>
+            </select>
+          </div>
+
+          <div style="flex:0 0 auto">
+            <label for="order">Reihenfolge</label>
+            <select id="order">
+              <option value="random">Zufällig</option>
+              <option value="oldest">Älteste zuerst</option>
+              <option value="newest">Neueste zuerst</option>
+            </select>
+          </div>
+
+          <button class="primary" id="btnStart">Start</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flashCard" id="flashCard" style="display:none" role="button" aria-label="Karte antippen für Antwort">
+          <div class="flashPrompt" id="quizPrompt">—</div>
+          <div class="flashAnswer" id="quizAnswer">—</div>
+          <div class="tapHint">Tippe auf die Karte, um die Antwort ein-/auszublenden.</div>
+        </div>
+
+        <div class="flashControls" id="flashControls" style="display:none">
+          <button id="btnKnown">✅ Gewusst</button>
+          <button id="btnUnknown">❌ Nicht gewusst</button>
+          <button id="btnDelete" class="danger">🗑️ Löschen</button>
+          <button id="btnNext" class="primary">Weiter ▶️</button>
+        </div>
+
+        <div class="flashStars" id="flashStars" style="display:none">
+          <span class="pill">Favorit:</span>
+          <button class="starBtn tight" data-stars="0" type="button">0</button>
+          <button class="starBtn tight" data-stars="1" type="button">⭐</button>
+          <button class="starBtn tight" data-stars="2" type="button">⭐⭐</button>
+          <button class="starBtn tight" data-stars="3" type="button">⭐⭐⭐</button>
+          <span class="pill" id="statusHint">Status: — · Sterne: —</span>
+        </div>
+
+        <div class="muted" id="learnHint">Wähle Modus + Richtung und drücke „Start“.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Data -->
+  <div id="viewData" style="display:none">
+    <section class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0;font-size:16px">Import / Export</h2>
+        <button id="btnBackToManage2" class="ghost">⬅️ Zurück zur Eingabe</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 style="margin:0 0 8px 0;font-size:14px">Export</h3>
+      <p class="muted small" style="margin-top:0">Text-Export: <span class="mono">Vorderseite;Rückseite</span></p>
+
+      <div class="row">
+        <button id="btnExportText">Text exportieren</button>
+        <button id="btnExportJson">JSON exportieren</button>
+      </div>
+      <textarea id="exportOut" readonly placeholder="Export erscheint hier…"></textarea>
+
+      <div class="divider"></div>
+
+      <h3 style="margin:0 0 8px 0;font-size:14px;color:#b00020">Reset</h3>
+      <p class="muted small" style="margin-top:0">Löscht alle Karten aus diesem Browser/Handy.</p>
+      <button class="danger" id="btnReset">Alles löschen</button>
+    </section>
   </div>
 </main>
 
-<div id="quiz">
-  <div class="qcard" onclick="toggleAnswer()">
-    <div>
-      <div id="q">—</div>
-      <div id="a" class="answer hidden">—</div>
-    </div>
-  </div>
-  <div class="bottom">
-    <button onclick="next()">Nächste</button>
-  </div>
-</div>
-
 <script>
-let cards = [];
-let current = null;
-let show = false;
+(function(){
+  const PRIMARY_KEY = "vokabeltrainer_cards";
+  const LEGACY_KEYS = [
+    PRIMARY_KEY,
+    "vokabeltrainer_v5_cards",
+    "vokabeltrainer_v4_cards",
+    "vokabeltrainer_v3_cards",
+    "vokabeltrainer_v2_cards",
+    "vokabeltrainer_cards_v1"
+  ];
 
-function importCards(){
-  const lines = document.getElementById("import").value.split("\n");
-  const added = [];
-  for (const l of lines){
-    const line = l.trim();
-    if (!line) continue;
-    const p = line.split(";");
-    if (p.length >= 2){
-      added.push({q: p[0].trim(), a: p.slice(1).join(";").trim()});
+  let {cards, sourceKey} = loadWithMigration();
+
+  function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+  function safeParse(raw){ try{ return JSON.parse(raw); }catch{ return null; } }
+
+  function loadWithMigration(){
+    for(const key of LEGACY_KEYS){
+      const raw = localStorage.getItem(key);
+      if(!raw) continue;
+      const parsed = safeParse(raw);
+      if(Array.isArray(parsed) && parsed.length){
+        if(key !== PRIMARY_KEY){
+          localStorage.setItem(PRIMARY_KEY, JSON.stringify(parsed));
+        }
+        return {cards: parsed, sourceKey: key};
+      }
+    }
+    return {cards: [], sourceKey: "(leer)"};
+  }
+
+  function saveCards(){
+    localStorage.setItem(PRIMARY_KEY, JSON.stringify(cards));
+    sourceKey = PRIMARY_KEY;
+    refreshAll();
+  }
+
+  function normalizeStars(n){
+    n = Number(n);
+    if(Number.isNaN(n)) return 0;
+    return Math.max(0, Math.min(3, Math.round(n)));
+  }
+  function normResult(s){ return (s==="known"||s==="unknown") ? s : "unknown"; }
+
+  function textIncludes(card, q){
+    if(!q) return true;
+    q = q.trim().toLowerCase();
+    return (card.front||"").toLowerCase().includes(q) || (card.back||"").toLowerCase().includes(q);
+  }
+  function applyFilter(list, filter){
+    switch(filter){
+      case "unknown": return list.filter(c => c.lastResult === "unknown");
+      case "star1": return list.filter(c => c.stars === 1);
+      case "star2": return list.filter(c => c.stars === 2);
+      case "star3": return list.filter(c => c.stars === 3);
+      default: return list;
     }
   }
-  cards.push(...added);
-  document.getElementById("import").value="";
-  alert(cards.length + " Karten insgesamt");
-}
-
-function enterQuiz(){
-  document.body.classList.add("quiz");
-  next();
-}
-
-function exitQuiz(){
-  document.body.classList.remove("quiz");
-}
-
-function next(){
-  if (!cards.length){
-    document.getElementById("q").textContent="Keine Karten";
-    document.getElementById("a").textContent="";
-    return;
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
   }
-  current = cards[Math.floor(Math.random()*cards.length)];
-  show=false;
-  document.getElementById("q").textContent=current.q;
-  document.getElementById("a").textContent=current.a;
-  document.getElementById("a").classList.add("hidden");
-}
+  function sortList(list, order){
+    const a=[...list];
+    if(order==="oldest") a.sort((x,y)=>(x.createdAt||0)-(y.createdAt||0));
+    if(order==="newest") a.sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));
+    if(order==="random") return shuffle(a);
+    return a;
+  }
 
-function toggleAnswer(){
-  if (!current) return;
-  show=!show;
-  document.getElementById("a").classList.toggle("hidden", !show);
-}
+  let ui = {
+    tab: "manage",
+    newStars: 0,
+    newLast: "unknown",
+    filter: "all",
+    search: "",
+    quizList: [],
+    quizIndex: 0,
+    currentCard: null,
+    direction: "front",
+    currentSide: "front",
+    learnMode: "all",
+    order: "random",
+    revealed: false
+  };
+
+  function setActiveTab(tab){
+    ui.tab = tab;
+    document.getElementById("tabManage").classList.toggle("active", tab==="manage");
+    document.getElementById("tabLearn").classList.toggle("active", tab==="learn");
+    document.getElementById("tabData").classList.toggle("active", tab==="data");
+    document.getElementById("viewManage").style.display = tab==="manage" ? "" : "none";
+    document.getElementById("viewLearn").style.display = tab==="learn" ? "" : "none";
+    document.getElementById("viewData").style.display = tab==="data" ? "" : "none";
+    updateStatusLine();
+  }
+
+  function updateStatusLine(){
+    const total = cards.length;
+    const unknown = cards.filter(c=>c.lastResult==="unknown").length;
+    const stars = cards.filter(c=>c.stars>0).length;
+    document.getElementById("statusLine").textContent =
+      `Karten: ${total} · Nicht gewusst: ${unknown} · Favoriten: ${stars}`;
+    document.getElementById("storageInfo").textContent =
+      `Speicher: ${PRIMARY_KEY} (gefunden aus: ${sourceKey})`;
+  }
+
+  function renderKpis(){
+    document.getElementById("kpiTotal").textContent = cards.length;
+    document.getElementById("kpiUnknown").textContent = cards.filter(c=>c.lastResult==="unknown").length;
+    document.getElementById("kpiStars").textContent = cards.filter(c=>c.stars>0).length;
+  }
+
+  function renderCardList(){
+    const listEl = document.getElementById("cardList");
+    const emptyHint = document.getElementById("emptyHint");
+    listEl.innerHTML = "";
+
+    let list = cards.filter(c => textIncludes(c, ui.search));
+    list = applyFilter(list, ui.filter);
+
+    if(list.length === 0){ emptyHint.style.display=""; return; }
+    emptyHint.style.display="none";
+
+    list.sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0)).forEach(card=>{
+      const item = document.createElement("div");
+      item.className="item";
+
+      const top = document.createElement("div");
+      top.className="itemTop";
+
+      const left = document.createElement("div");
+      left.className="itemLeft";
+
+      const front = document.createElement("div");
+      front.className="front";
+      front.textContent = card.front;
+
+      const back = document.createElement("div");
+      back.className="back";
+      back.textContent = card.back;
+
+      const meta = document.createElement("div");
+      meta.className="row";
+      meta.style.marginTop="8px";
+
+      const pill1 = document.createElement("span");
+      pill1.className="pill";
+      pill1.textContent = `Status: ${card.lastResult==="known" ? "gewusst" : "nicht gewusst"}`;
+
+      const pill2 = document.createElement("span");
+      pill2.className="pill";
+      pill2.textContent = `Sterne: ${card.stars}`;
+
+      meta.appendChild(pill1); meta.appendChild(pill2);
+
+      left.appendChild(front); left.appendChild(back); left.appendChild(meta);
+
+      const right = document.createElement("div");
+      right.className="row";
+      right.style.gap="6px";
+
+      const starWrap = document.createElement("div");
+      starWrap.className="stars";
+      [0,1,2,3].forEach(n=>{
+        const b=document.createElement("button");
+        b.className="starBtn"+(card.stars===n?" active":"");
+        b.textContent = n===0 ? "0" : "⭐".repeat(n);
+        b.onclick=()=>{ card.stars=n; card.updatedAt=Date.now(); saveCards(); };
+        starWrap.appendChild(b);
+      });
+
+      const btnKnown = document.createElement("button");
+      btnKnown.textContent="✅ gewusst";
+      btnKnown.onclick=()=>{ card.lastResult="known"; card.updatedAt=Date.now(); saveCards(); };
+
+      const btnUnknown = document.createElement("button");
+      btnUnknown.textContent="❌ nicht gewusst";
+      btnUnknown.onclick=()=>{ card.lastResult="unknown"; card.updatedAt=Date.now(); saveCards(); };
+
+      const btnEdit = document.createElement("button");
+      btnEdit.textContent="✏️";
+      btnEdit.onclick=()=>{
+        const nf = prompt("Vorderseite:", card.front);
+        if(nf===null) return;
+        const nb = prompt("Rückseite:", card.back);
+        if(nb===null) return;
+        card.front = nf.trim();
+        card.back = nb.trim();
+        card.updatedAt = Date.now();
+        saveCards();
+      };
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent="🗑️";
+      btnDel.className="danger";
+      btnDel.onclick=()=>{
+        if(confirm("Diese Karte wirklich löschen?")){
+          cards = cards.filter(c=>c.id!==card.id);
+          saveCards();
+        }
+      };
+
+      right.appendChild(starWrap);
+      right.appendChild(btnKnown);
+      right.appendChild(btnUnknown);
+      right.appendChild(btnEdit);
+      right.appendChild(btnDel);
+
+      top.appendChild(left);
+      top.appendChild(right);
+      item.appendChild(top);
+      listEl.appendChild(item);
+    });
+  }
+
+  function setNewStars(n){
+    ui.newStars = n;
+    document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
+      btn.classList.toggle("active", Number(btn.dataset.stars)===n);
+    });
+  }
+  function setNewResult(res){
+    ui.newLast = res;
+    document.getElementById("btnSetUnknown").classList.toggle("active", res==="unknown");
+    document.getElementById("btnSetKnown").classList.toggle("active", res==="known");
+  }
+
+  function addCard(stay){
+    const front = document.getElementById("inFront").value.trim();
+    const back  = document.getElementById("inBack").value.trim();
+    if(!front || !back){ alert("Bitte Vorderseite UND Rückseite ausfüllen."); return; }
+    const now = Date.now();
+    cards.unshift({ id: uid(), front, back, stars: ui.newStars, lastResult: ui.newLast, createdAt: now, updatedAt: now });
+    saveCards();
+    if(stay){
+      document.getElementById("inFront").value="";
+      document.getElementById("inBack").value="";
+      document.getElementById("inFront").focus();
+    }
+  }
+
+  function bulkAdd(){
+    const ta = document.getElementById("bulkEntry");
+    const report = document.getElementById("bulkReport");
+    const raw = ta.value;
+
+    report.textContent = "";
+    if(!raw.trim()){
+      report.innerHTML = `<span class="warn">Keine Zeilen gefunden.</span>`;
+      return;
+    }
+
+    const defaultStars = normalizeStars(document.getElementById("bulkDefaultStars").value);
+    const defaultStatus = normResult(document.getElementById("bulkDefaultStatus").value);
+
+    const lines = raw.split(/\r?\n/);
+    let added = 0, skipped = 0;
+    const now = Date.now();
+
+    for(const lineRaw of lines){
+      const line = lineRaw.trim();
+      if(!line) continue;
+
+      const parts = line.split(";").map(p=>p.trim());
+      if(parts.length < 2){ skipped++; continue; }
+
+      const front = parts[0];
+      const back  = parts[1];
+      if(!front || !back){ skipped++; continue; }
+
+      const stars = (parts.length>=3 && parts[2]!== "") ? normalizeStars(parts[2]) : defaultStars;
+      const status = (parts.length>=4 && parts[3]!== "") ? normResult(parts[3].toLowerCase()) : defaultStatus;
+
+      cards.unshift({ id: uid(), front, back, stars, lastResult: status, createdAt: now, updatedAt: now });
+      added++;
+    }
+
+    if(added===0){
+      report.innerHTML = `<span class="warn">Nichts importiert.</span>`;
+      return;
+    }
+    saveCards();
+    report.innerHTML = `<span class="ok">Fertig:</span> ${added} hinzugefügt` + (skipped ? ` · <span class="warn">${skipped} übersprungen</span>` : "");
+  }
+
+  function labelMode(m){
+    if(m==="all") return "Alle";
+    if(m==="unknown") return "Nicht gewusst";
+    if(m==="star1") return "⭐";
+    if(m==="star2") return "⭐⭐";
+    if(m==="star3") return "⭐⭐⭐";
+    return "—";
+  }
+  function labelDir(d){
+    if(d==="front") return "V→R";
+    if(d==="back") return "R→V";
+    if(d==="mixed") return "Gemischt";
+    return "—";
+  }
+
+  function startQuiz(){
+    ui.learnMode = document.getElementById("learnMode").value;
+    ui.direction = document.getElementById("direction").value;
+    ui.order = document.getElementById("order").value;
+
+    let pool = applyFilter(cards, ui.learnMode);
+    pool = sortList(pool, ui.order);
+
+    const hint = document.getElementById("learnHint");
+    const flashCard = document.getElementById("flashCard");
+    const controls = document.getElementById("flashControls");
+    const starsRow = document.getElementById("flashStars");
+
+    if(pool.length===0){
+      hint.innerHTML = `<span class="warn">Keine Karten gefunden.</span>`;
+      flashCard.style.display="none";
+      controls.style.display="none";
+      starsRow.style.display="none";
+      document.getElementById("progressPill").textContent = "0 / 0";
+      document.getElementById("modePill").textContent = "Modus: —";
+      document.getElementById("dirPill").textContent = "Richtung: —";
+      return;
+    }
+
+    ui.quizList = pool.map(c=>c.id);
+    ui.quizIndex = 0;
+    ui.currentCard = null;
+    ui.revealed = false;
+
+    hint.textContent = "";
+    flashCard.style.display="";
+    controls.style.display="";
+    starsRow.style.display="";
+
+    document.getElementById("modePill").textContent = "Modus: " + labelMode(ui.learnMode);
+    document.getElementById("dirPill").textContent = "Richtung: " + labelDir(ui.direction);
+
+    showCurrent();
+  }
+
+  function showCurrent(){
+    const id = ui.quizList[ui.quizIndex];
+    const card = cards.find(c=>c.id===id);
+    if(!card){ nextCard(); return; }
+
+    ui.currentCard = card;
+
+    let side = ui.direction;
+    if(ui.direction === "mixed"){
+      side = Math.random() < 0.5 ? "front" : "back";
+    }
+    ui.currentSide = side;
+
+    const showFront = (side === "front");
+
+    document.getElementById("progressPill").textContent = `${ui.quizIndex+1} / ${ui.quizList.length}`;
+    document.getElementById("quizPrompt").textContent = showFront ? card.front : card.back;
+
+    const ansEl = document.getElementById("quizAnswer");
+    ansEl.textContent = showFront ? card.back : card.front;
+
+    ui.revealed = false;
+    ansEl.classList.remove("show");
+
+    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+      const n = Number(btn.dataset.stars);
+      btn.classList.toggle("active", n === card.stars);
+    });
+
+    const dirLabel = showFront ? "DE→ES" : "ES→DE";
+    document.getElementById("statusHint").textContent =
+      `Status: ${card.lastResult==="known" ? "gewusst" : "nicht gewusst"} · Sterne: ${card.stars} · ${dirLabel}`;
+  }
+
+  function toggleReveal(){
+    if(!ui.currentCard) return;
+    ui.revealed = !ui.revealed;
+    document.getElementById("quizAnswer").classList.toggle("show", ui.revealed);
+  }
+
+  function markKnown(known){
+    if(!ui.currentCard) return;
+    ui.currentCard.lastResult = known ? "known" : "unknown";
+    ui.currentCard.updatedAt = Date.now();
+    saveCards();
+    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
+    document.getElementById("statusHint").textContent =
+      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst" : "nicht gewusst"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
+  }
+
+  function setStars(n){
+    if(!ui.currentCard) return;
+    ui.currentCard.stars = n;
+    ui.currentCard.updatedAt = Date.now();
+    saveCards();
+    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+      btn.classList.toggle("active", Number(btn.dataset.stars)===n);
+    });
+    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
+    document.getElementById("statusHint").textContent =
+      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst" : "nicht gewusst"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
+  }
+
+  // ✅ Löschen direkt auf Lernkarte
+  function deleteCurrentFromLearn(){
+    if(!ui.currentCard) return;
+
+    const shown =
+      `\n\nVorderseite:\n${ui.currentCard.front}\n\nRückseite:\n${ui.currentCard.back}\n`;
+
+    if(!confirm("Diese Karte wirklich löschen?" + shown)) return;
+
+    const delId = ui.currentCard.id;
+
+    // aus Hauptliste löschen
+    cards = cards.filter(c => c.id !== delId);
+
+    // aus Quizliste löschen
+    ui.quizList = ui.quizList.filter(id => id !== delId);
+
+    // speichern
+    saveCards();
+
+    // wenn Quiz jetzt leer: fertig
+    if(ui.quizList.length === 0){
+      document.getElementById("learnHint").textContent = "Keine Karten mehr in dieser Runde.";
+      document.getElementById("flashCard").style.display="none";
+      document.getElementById("flashControls").style.display="none";
+      document.getElementById("flashStars").style.display="none";
+      document.getElementById("progressPill").textContent = "0 / 0";
+      ui.currentCard = null;
+      return;
+    }
+
+    // Index korrigieren (bleibt auf gleicher Position; wenn am Ende -> zurück)
+    if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
+
+    // nächste Karte anzeigen
+    showCurrent();
+  }
+
+  function nextCard(){
+    if(ui.quizList.length===0) return;
+    ui.quizIndex++;
+    if(ui.quizIndex >= ui.quizList.length){
+      document.getElementById("learnHint").textContent = "Fertig ✅";
+      document.getElementById("flashCard").style.display="none";
+      document.getElementById("flashControls").style.display="none";
+      document.getElementById("flashStars").style.display="none";
+      document.getElementById("progressPill").textContent = `${ui.quizList.length} / ${ui.quizList.length}`;
+      return;
+    }
+    showCurrent();
+  }
+
+  function exportText(){
+    const lines = cards.map(c => `${c.front};${c.back}`);
+    document.getElementById("exportOut").value = lines.join("\n");
+  }
+  function exportJson(){
+    document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
+  }
+  function resetAll(){
+    if(confirm("Wirklich ALLES löschen? Das kann man nicht rückgängig machen.")){
+      cards = [];
+      for(const key of LEGACY_KEYS){
+        try{ localStorage.removeItem(key); }catch{}
+      }
+      refreshAll();
+      alert("Alles gelöscht.");
+    }
+  }
+
+  // Wiring
+  document.getElementById("tabManage").onclick = ()=>setActiveTab("manage");
+  document.getElementById("tabLearn").onclick = ()=>setActiveTab("learn");
+  document.getElementById("tabData").onclick = ()=>setActiveTab("data");
+  document.getElementById("btnBackToManage").onclick = ()=>setActiveTab("manage");
+  document.getElementById("btnBackToManage2").onclick = ()=>setActiveTab("manage");
+
+  document.getElementById("btnAdd").onclick = ()=>addCard(false);
+  document.getElementById("btnAddStay").onclick = ()=>addCard(true);
+
+  document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
+    btn.onclick = ()=> setNewStars(Number(btn.dataset.stars));
+  });
+  document.getElementById("btnSetUnknown").onclick = ()=> setNewResult("unknown");
+  document.getElementById("btnSetKnown").onclick = ()=> setNewResult("known");
+
+  document.getElementById("btnBulkAdd").onclick = bulkAdd;
+  document.getElementById("btnBulkClear").onclick = ()=>{
+    document.getElementById("bulkEntry").value="";
+    document.getElementById("bulkReport").textContent="";
+  };
+
+  document.getElementById("search").addEventListener("input", e=>{ ui.search=e.target.value; renderCardList(); });
+  document.getElementById("filter").addEventListener("change", e=>{ ui.filter=e.target.value; renderCardList(); });
+
+  document.getElementById("btnStart").onclick = startQuiz;
+  document.getElementById("btnKnown").onclick = ()=>markKnown(true);
+  document.getElementById("btnUnknown").onclick = ()=>markKnown(false);
+  document.getElementById("btnNext").onclick = nextCard;
+  document.getElementById("btnDelete").onclick = deleteCurrentFromLearn;
+
+  document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+    btn.onclick = ()=> setStars(Number(btn.dataset.stars));
+  });
+
+  document.getElementById("flashCard").addEventListener("click", toggleReveal);
+  document.getElementById("flashCard").addEventListener("touchend", (e)=>{ e.preventDefault(); toggleReveal(); }, {passive:false});
+
+  document.getElementById("btnExportText").onclick = exportText;
+  document.getElementById("btnExportJson").onclick = exportJson;
+  document.getElementById("btnReset").onclick = resetAll;
+
+  function refreshAll(){ updateStatusLine(); renderKpis(); renderCardList(); }
+
+  // Init
+  setNewStars(0);
+  setNewResult("unknown");
+  document.getElementById("filter").value = "all";
+  refreshAll();
+})();
 </script>
-
 </body>
 </html>
