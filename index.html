@@ -3,526 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vokabeltrainer – Favoriten</title>
+<title>Vokabeltrainer – NEU</title>
 
 <style>
-  body {
-    margin:0;
-    font-family: system-ui, sans-serif;
-    background:#0b0b0d;
-    color:#f2f2f3;
-  }
-
-  header {
-    background:#111114;
-    padding:12px;
-    border-bottom:1px solid #23232a;
-    position: sticky;
-    top:0;
-    z-index:10;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-
-  button, select, input, textarea {
-    background:#17171d;
-    color:#f2f2f3;
-    border:1px solid #2a2a33;
-    border-radius:10px;
-    padding:8px 10px;
-  }
+  body { margin:0; font-family:system-ui,sans-serif; background:#0b0b0d; color:#f2f2f3; }
+  header { background:#111114; padding:12px; border-bottom:1px solid #23232a; display:flex; gap:10px; flex-wrap:wrap; }
+  button, textarea { background:#17171d; color:#f2f2f3; border:1px solid #2a2a33; border-radius:12px; padding:10px 12px; }
   button { cursor:pointer; }
-  main {
-    padding:12px;
-    max-width:900px;
-    margin:auto;
-  }
-
-  .card {
-    background:#111114;
-    border:1px solid #23232a;
-    border-radius:18px;
-    padding:14px;
-    margin-bottom:12px;
-  }
-
-  textarea { width:100%; min-height:120px; resize: vertical; }
-
-  .item {
-    border:1px solid #23232a;
-    border-radius:12px;
-    padding:10px;
-    margin-bottom:8px;
-    background:#0f0f13;
-  }
-
-  .row {
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-
+  main { padding:12px; max-width:900px; margin:auto; }
+  textarea { width:100%; min-height:140px; font-size:16px; }
+  .card { background:#111114; border:1px solid #23232a; border-radius:18px; padding:14px; margin-bottom:12px; }
   .muted { color:#b7b7c2; font-size:12px; }
 
-  .star {
-    cursor:pointer;
-    padding:4px 6px;
-    border:1px solid #2a2a33;
-    border-radius:10px;
-    background:#15151b;
-  }
-  .star.on { font-weight:900; background:#2a2a33; }
-
+  /* Vollbild-Abfrage */
+  body.quiz header, body.quiz main { display:none; }
+  #quiz { display:none; }
+  body.quiz #quiz { display:flex; }
+  #quiz { position:fixed; inset:0; background:#0b0b0d; flex-direction:column; }
+  .qcard { flex:1; display:flex; align-items:center; justify-content:center; text-align:center; font-size:38px; font-weight:900; padding:20px; cursor:pointer; }
+  .answer { font-size:34px; font-weight:800; margin-top:20px; }
   .hidden { display:none; }
-
-  code {
-    background:#15151b;
-    padding:2px 6px;
-    border-radius:8px;
-    border:1px solid #2a2a33;
-  }
-
-  /* ===== Vollbild-Abfrage ===== */
-  body.quiz-full header,
-  body.quiz-full main {
-    display:none;
-  }
-
-  #quizFullscreen {
-    display:none;
-  }
-  body.quiz-full #quizFullscreen {
-    display:flex;
-  }
-
-  #quizFullscreen {
-    position: fixed;
-    inset: 0;
-    background:#0b0b0d;
-    color:#f2f2f3;
-    flex-direction: column;
-  }
-
-  .qTopBar {
-    display:flex;
-    gap:10px;
-    align-items:center;
-    justify-content: space-between;
-    padding:12px;
-    border-bottom:1px solid #23232a;
-    background:#111114;
-  }
-
-  .qTopLeft, .qTopRight { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-
-  .qCardWrap {
-    flex: 1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:12px;
-  }
-
-  .qCard {
-    width: min(900px, 96vw);
-    height: min(780px, 76vh);
-    border-radius: 22px;
-    border:1px solid #23232a;
-    background:#111114;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-    cursor:pointer;
-    user-select:none;
-    padding: 18px;
-  }
-
-  #qText {
-    font-size: 40px;
-    font-weight: 900;
-    line-height: 1.2;
-  }
-
-  #aText {
-    font-size: 38px;
-    font-weight: 800;
-    line-height: 1.2;
-    margin-top: 18px;
-  }
-
-  .qBottomBar {
-    display:flex;
-    gap:10px;
-    justify-content:center;
-    padding:12px;
-    border-top:1px solid #23232a;
-    background:#111114;
-    flex-wrap:wrap;
-  }
-
-  .pill {
-    border:1px solid #2a2a33;
-    background:#15151b;
-    border-radius:999px;
-    padding:8px 10px;
-    cursor:pointer;
-    font-size: 13px;
-    user-select:none;
-  }
-  .pill.on {
-    background:#2a2a33;
-    border-color:#3a3a46;
-    font-weight: 800;
-  }
+  .bottom { display:flex; gap:10px; justify-content:center; padding:12px; border-top:1px solid #23232a; }
 </style>
 </head>
 
 <body>
 
+<!-- TEST-BANNER (muss sichtbar sein!) -->
+<div style="position:fixed;top:0;left:0;right:0;background:#ff0055;color:#fff;font-weight:900;text-align:center;padding:10px;z-index:9999;">
+NEUER TRAINER – TEST
+</div>
+
 <header>
-  <button id="btnCards">Karten</button>
-  <button id="btnQuiz">Abfrage</button>
-  <span id="count" class="muted"></span>
+  <button onclick="enterQuiz()">Abfrage</button>
+  <button onclick="exitQuiz()">Karten</button>
 </header>
 
 <main>
-  <div id="cardsPanel" class="card">
-    <div class="muted">
-      Import pro Zeile:
-      <code>Deutsch;Spanisch</code> oder
-      <code>Deutsch;Spanisch;1</code> / <code>;2</code> / <code>;3</code>
-    </div>
-
-    <textarea id="importBox" placeholder="z.B.
-der Mut;el valor;3
-sich beeilen;darse prisa;2
-die Handlung;el argumento"></textarea>
-
-    <div class="row" style="margin-top:8px;">
-      <button id="importBtn">Importieren</button>
-      <button id="clearImportBtn">Eingabe leeren</button>
-      <button id="exportBtn">Export</button>
-      <button id="wipeBtn">Alles löschen</button>
-    </div>
-
-    <hr style="border-color:#23232a;">
-
-    <div class="row">
-      <select id="filterFav">
-        <option value="all">Favoriten: alle</option>
-        <option value="0">0 ★</option>
-        <option value="1">nur 1 ★</option>
-        <option value="2">nur 2 ★</option>
-        <option value="3">nur 3 ★</option>
-      </select>
-      <input id="search" placeholder="Suchen…" />
-    </div>
-
-    <div id="list" style="margin-top:10px;"></div>
+  <div class="card">
+    <div class="muted">Import: Deutsch;Spanisch</div>
+    <textarea id="import"></textarea>
+    <button onclick="importCards()">Importieren</button>
   </div>
 </main>
 
-<!-- ================= VOLLBILD ABFRAGE ================= -->
-<div id="quizFullscreen">
-  <div class="qTopBar">
-    <div class="qTopLeft">
-      <button id="exitQuizBtn">Zurück</button>
-      <div class="muted" id="dirLabel">—</div>
-    </div>
-    <div class="qTopRight">
-      <select id="quizFilterFav">
-        <option value="all">Fav: alle</option>
-        <option value="0">Fav: 0★</option>
-        <option value="1">Fav: 1★</option>
-        <option value="2">Fav: 2★</option>
-        <option value="3">Fav: 3★</option>
-      </select>
-
-      <select id="quizMode">
-        <option value="all">Modus: alle Karten</option>
-        <option value="unknown">Modus: nur nicht gewusst</option>
-      </select>
-
-      <div class="muted" id="poolInfo">Pool: 0</div>
-      <div class="muted" id="favInfo">Favorit: —</div>
+<div id="quiz">
+  <div class="qcard" onclick="toggleAnswer()">
+    <div>
+      <div id="q">—</div>
+      <div id="a" class="answer hidden">—</div>
     </div>
   </div>
-
-  <div class="qCardWrap">
-    <div id="quizCard" class="qCard" title="Tippen: Antwort ein/aus">
-      <div id="qText">—</div>
-      <div id="aText" class="hidden">—</div>
-      <div class="muted" style="margin-top:18px;">Tippen = Antwort</div>
-    </div>
-  </div>
-
-  <div class="qBottomBar">
-    <button id="knownBtn">Gewusst</button>
-    <button id="unknownBtn">Nicht gewusst</button>
-    <button id="toggleFavBtn">Favorit ändern</button>
-    <button id="nextBtn">Nächste</button>
-  </div>
-
-  <div style="padding: 0 12px 12px 12px; text-align:center;">
-    <div class="muted" id="statsLine">—</div>
+  <div class="bottom">
+    <button onclick="next()">Nächste</button>
   </div>
 </div>
 
 <script>
-(() => {
-  const $ = id => document.getElementById(id);
+let cards = [];
+let current = null;
+let show = false;
 
-  const KEY_CARDS = "vokabeltrainer_cards";
-  const KEY_STATS = "vokabeltrainer_stats";
-
-  let cards = safeParse(localStorage.getItem(KEY_CARDS), []);
-  let stats = safeParse(localStorage.getItem(KEY_STATS), { known:0, unknown:0 });
-
-  let current = null;
-  let currentDir = null;
-  let reveal = false;
-
-  function safeParse(raw, fallback){
-    try {
-      const v = JSON.parse(raw);
-      return (v === null || v === undefined) ? fallback : v;
-    } catch {
-      return fallback;
+function importCards(){
+  const lines = document.getElementById("import").value.split("\n");
+  const added = [];
+  for (const l of lines){
+    const line = l.trim();
+    if (!line) continue;
+    const p = line.split(";");
+    if (p.length >= 2){
+      added.push({q: p[0].trim(), a: p.slice(1).join(";").trim()});
     }
   }
+  cards.push(...added);
+  document.getElementById("import").value="";
+  alert(cards.length + " Karten insgesamt");
+}
 
-  function save(){
-    localStorage.setItem(KEY_CARDS, JSON.stringify(cards));
-    localStorage.setItem(KEY_STATS, JSON.stringify(stats));
-    renderCards();
-    updateHeader();
-    updateStatsLine();
-    updatePoolInfo();
+function enterQuiz(){
+  document.body.classList.add("quiz");
+  next();
+}
+
+function exitQuiz(){
+  document.body.classList.remove("quiz");
+}
+
+function next(){
+  if (!cards.length){
+    document.getElementById("q").textContent="Keine Karten";
+    document.getElementById("a").textContent="";
+    return;
   }
+  current = cards[Math.floor(Math.random()*cards.length)];
+  show=false;
+  document.getElementById("q").textContent=current.q;
+  document.getElementById("a").textContent=current.a;
+  document.getElementById("a").classList.add("hidden");
+}
 
-  function parseImport(text){
-    return text.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean).map(line => {
-      const p = line.split(";").map(x => x.trim());
-      if (p.length < 2) return null;
-      const fav = Math.max(0, Math.min(3, parseInt(p[2]) || 0));
-      return {
-        id: Date.now()+"_"+Math.random().toString(16).slice(2),
-        de: p[0],
-        es: p[1],
-        fav,
-        k: 0,
-        u: 0
-      };
-    }).filter(Boolean);
-  }
-
-  function filteredCards(forQuiz=false){
-    const fav = forQuiz ? $("quizFilterFav").value : $("filterFav").value;
-    const q = forQuiz ? "" : $("search").value.toLowerCase().trim();
-
-    let arr = [...cards];
-
-    if (fav !== "all") arr = arr.filter(c => c.fav == fav);
-
-    if (!forQuiz && q){
-      arr = arr.filter(c => c.de.toLowerCase().includes(q) || c.es.toLowerCase().includes(q));
-    }
-
-    // Quiz-Mode: nur nicht gewusst
-    if (forQuiz){
-      const mode = $("quizMode").value;
-      if (mode === "unknown"){
-        arr = arr.filter(c => (c.u || 0) > 0);
-      }
-    }
-
-    return arr;
-  }
-
-  function renderCards(){
-    const list = $("list");
-    list.innerHTML = "";
-    const arr = filteredCards(false);
-    if (!arr.length){
-      list.innerHTML = "<div class='muted'>Keine Karten</div>";
-      return;
-    }
-
-    for (const c of arr){
-      const d = document.createElement("div");
-      d.className = "item";
-      d.innerHTML = `<b>${escapeHtml(c.de)}</b><br>${escapeHtml(c.es)}
-        <br><span class="muted">gewusst ${c.k||0} · nicht ${c.u||0}</span>`;
-
-      const row = document.createElement("div");
-      row.className = "row";
-      row.style.marginTop = "6px";
-
-      for (let i=0;i<=3;i++){
-        const s = document.createElement("span");
-        s.className = "star" + (c.fav===i ? " on" : "");
-        s.textContent = i===0 ? "0★" : "★".repeat(i);
-        s.onclick = () => { c.fav = i; save(); };
-        row.appendChild(s);
-      }
-
-      const del = document.createElement("button");
-      del.textContent = "Löschen";
-      del.onclick = () => { cards = cards.filter(x => x.id !== c.id); save(); };
-      row.appendChild(del);
-
-      d.appendChild(row);
-      list.appendChild(d);
-    }
-  }
-
-  function updateHeader(){
-    $("count").textContent = cards.length + " Karten";
-  }
-
-  function updatePoolInfo(){
-    $("poolInfo").textContent = "Pool: " + filteredCards(true).length;
-  }
-
-  function updateStatsLine(){
-    $("statsLine").textContent = `Session: gewusst ${stats.known} · nicht ${stats.unknown}`;
-  }
-
-  function enterQuiz(){
-    document.body.classList.add("quiz-full");
-    nextCard();
-  }
-
-  function exitQuiz(){
-    document.body.classList.remove("quiz-full");
-  }
-
-  function nextCard(){
-    const pool = filteredCards(true);
-    updatePoolInfo();
-
-    if (!pool.length){
-      current = null;
-      $("dirLabel").textContent = "—";
-      $("qText").textContent = "—";
-      $("aText").textContent = "—";
-      $("aText").classList.add("hidden");
-      $("favInfo").textContent = "Favorit: —";
-      reveal = false;
-      return;
-    }
-
-    // absolut random Karte + Richtung
-    current = pool[Math.floor(Math.random() * pool.length)];
-    currentDir = (Math.random() < 0.5) ? "de-es" : "es-de";
-
-    reveal = false;
-    $("aText").classList.add("hidden");
-
-    if (currentDir === "de-es"){
-      $("dirLabel").textContent = "Deutsch → Spanisch";
-      $("qText").textContent = current.de;
-      $("aText").textContent = current.es;
-    } else {
-      $("dirLabel").textContent = "Spanisch → Deutsch";
-      $("qText").textContent = current.es;
-      $("aText").textContent = current.de;
-    }
-
-    $("favInfo").textContent = "Favorit: " + (current.fav===0 ? "0★" : "★".repeat(current.fav));
-  }
-
-  function toggleAnswer(){
-    if (!current) return;
-    reveal = !reveal;
-    $("aText").classList.toggle("hidden", !reveal);
-  }
-
-  function known(){
-    if (!current) return;
-    current.k = (current.k || 0) + 1;
-    stats.known++;
-    save();
-    nextCard();
-  }
-
-  function unknown(){
-    if (!current) return;
-    current.u = (current.u || 0) + 1;
-    stats.unknown++;
-    save();
-    nextCard();
-  }
-
-  function toggleFav(){
-    if (!current) return;
-    current.fav = ((current.fav || 0) + 1) % 4;
-    save();
-    $("favInfo").textContent = "Favorit: " + (current.fav===0 ? "0★" : "★".repeat(current.fav));
-  }
-
-  function escapeHtml(s){
-    return String(s)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  // ===== Events =====
-  $("btnCards").onclick = () => exitQuiz();
-  $("btnQuiz").onclick = () => enterQuiz();
-  $("exitQuizBtn").onclick = () => exitQuiz();
-
-  $("quizCard").onclick = () => toggleAnswer();
-
-  $("importBtn").onclick = () => {
-    const parsed = parseImport($("importBox").value);
-    if (!parsed.length) return alert("Keine gültigen Zeilen.");
-    cards = [...parsed, ...cards];
-    $("importBox").value = "";
-    save();
-  };
-
-  $("clearImportBtn").onclick = () => $("importBox").value = "";
-
-  $("wipeBtn").onclick = () => {
-    if (!confirm("Alles löschen?")) return;
-    cards = [];
-    stats = { known:0, unknown:0 };
-    current = null;
-    save();
-  };
-
-  $("exportBtn").onclick = () => {
-    const blob = new Blob([JSON.stringify({cards, stats}, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "vokabeltrainer_export.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
-  $("filterFav").onchange = renderCards;
-  $("search").oninput = renderCards;
-
-  $("quizFilterFav").onchange = () => nextCard();
-  $("quizMode").onchange = () => nextCard();
-
-  $("knownBtn").onclick = () => known();
-  $("unknownBtn").onclick = () => unknown();
-  $("toggleFavBtn").onclick = () => toggleFav();
-  $("nextBtn").onclick = () => nextCard();
-
-  // Init
-  save();
-})();
+function toggleAnswer(){
+  if (!current) return;
+  show=!show;
+  document.getElementById("a").classList.toggle("hidden", !show);
+}
 </script>
 
 </body>
