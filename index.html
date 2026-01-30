@@ -52,7 +52,6 @@
     .ok{color:#0a7a0a;font-weight:800}
     .warn{color:#b00020;font-weight:800}
 
-    /* Vollbild-Karte */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
     .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .flashCard{
@@ -302,10 +301,9 @@
 
       <div class="divider"></div>
 
-      <!-- ✅ Backup -->
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
       <p class="muted small" style="margin-top:0">
-        Backup-Datei enthält <b>alle</b> Daten (inkl. Sterne & Status) und ist ideal fürs Sichern/Wiederherstellen.
+        Backup-Datei enthält alle Daten (inkl. Sterne & Status).
       </p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary">Backup herunterladen (JSON)</button>
@@ -317,11 +315,9 @@
 
       <div class="divider"></div>
 
-      <!-- ✅ TXT Export -->
       <h3 style="margin:0 0 8px 0;font-size:14px">TXT Export</h3>
       <p class="muted small" style="margin-top:0">
-        Format für deine Eingabe-Funktion: <span class="mono">Vorderseite;Rückseite;Sterne;Status</span><br>
-        Status ist <span class="mono">known</span> oder <span class="mono">unknown</span>.
+        Format: <span class="mono">Vorderseite;Rückseite;Sterne;Status</span> (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
       </p>
       <div class="row">
         <button id="btnExportTxtAll">TXT exportieren (alle, mit Favoriten)</button>
@@ -660,7 +656,7 @@
 
     if(pool.length===0){
       hint.innerHTML = `<span class="warn">Keine Karten gefunden.</span>`;
-      flashCard.style.display “none”;
+      flashCard.style.display = "none";
       controls.style.display="none";
       starsRow.style.display="none";
       document.getElementById("progressPill").textContent = "0 / 0";
@@ -730,9 +726,6 @@
     ui.currentCard.lastResult = known ? "known" : "unknown";
     ui.currentCard.updatedAt = Date.now();
     saveCards();
-    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
-    document.getElementById("statusHint").textContent =
-      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst" : "nicht gewusst"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
   }
 
   function setStars(n){
@@ -740,12 +733,6 @@
     ui.currentCard.stars = n;
     ui.currentCard.updatedAt = Date.now();
     saveCards();
-    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
-      btn.classList.toggle("active", Number(btn.dataset.stars)===n);
-    });
-    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
-    document.getElementById("statusHint").textContent =
-      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst" : "nicht gewusst"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
   }
 
   function deleteCurrentFromLearn(){
@@ -786,8 +773,6 @@
     showCurrent();
   }
 
-  // ========= Backup + Export =========
-
   function downloadText(filename, text){
     const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -812,12 +797,10 @@
   }
 
   function sanitizeForTxt(s){
-    // Semikolon ist Trennzeichen: nicht entfernen, aber Zeilenumbrüche raus
     return String(s ?? "").replace(/\r?\n/g, " ").trim();
   }
 
   function toAppTxtLines(list){
-    // kompatibel zu Bulk-Import: front;back;stars;status
     return list.map(c => [
       sanitizeForTxt(c.front),
       sanitizeForTxt(c.back),
@@ -826,30 +809,28 @@
     ].join(";"));
   }
 
+  function makeFileName(base, ext){
+    const d = new Date();
+    const pad = (n)=>String(n).padStart(2,"0");
+    const stamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+    return `${base}_${stamp}.${ext}`;
+  }
+
   function exportTxtAll(){
-    const lines = toAppTxtLines(cards);
-    const out = lines.join("\n");
+    const out = toAppTxtLines(cards).join("\n");
     document.getElementById("exportOut").value = out;
     downloadText(makeFileName("vokabeln_alle", "txt"), out);
   }
 
   function exportTxtFav(){
     const fav = cards.filter(c => normalizeStars(c.stars) > 0);
-    const lines = toAppTxtLines(fav);
-    const out = lines.join("\n");
+    const out = toAppTxtLines(fav).join("\n");
     document.getElementById("exportOut").value = out;
     downloadText(makeFileName("vokabeln_favoriten", "txt"), out);
   }
 
   function exportJsonToField(){
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
-  }
-
-  function makeFileName(base, ext){
-    const d = new Date();
-    const pad = (n)=>String(n).padStart(2,"0");
-    const stamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
-    return `${base}_${stamp}.${ext}`;
   }
 
   function backupDownload(){
@@ -877,7 +858,6 @@
     reader.onload = () => {
       try{
         const parsed = JSON.parse(String(reader.result || ""));
-        // akzeptiere entweder {cards:[...]} oder direkt [...]
         let incoming = null;
 
         if(Array.isArray(parsed)) incoming = parsed;
@@ -888,7 +868,6 @@
           return;
         }
 
-        // normalisieren + absichern
         const cleaned = [];
         for(const c of incoming){
           const front = (c && typeof c.front==="string") ? c.front.trim() : "";
@@ -906,7 +885,6 @@
           });
         }
 
-        // Duplikate nach id entfernen (falls nötig)
         const seen = new Set();
         const unique = [];
         for(const c of cleaned){
@@ -930,8 +908,6 @@
     };
     reader.readAsText(file);
   }
-
-  // ========= Ende Backup + Export =========
 
   function resetAll(){
     if(confirm("Wirklich ALLES löschen? Das kann man nicht rückgängig machen.")){
@@ -979,7 +955,7 @@
   document.getElementById("flashCard").addEventListener("click", toggleReveal);
   document.getElementById("flashCard").addEventListener("touchend", (e)=>{ e.preventDefault(); toggleReveal(); }, {passive:false});
 
-  // Data: Backup + TXT
+  // Data
   document.getElementById("btnBackupJson").onclick = backupDownload;
   document.getElementById("btnRestoreJson").onclick = restoreFromFile;
   document.getElementById("btnExportTxtAll").onclick = exportTxtAll;
