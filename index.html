@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (Backup + TXT Export inkl. Favoriten)</title>
+  <title>Vokabeltrainer (Auto-Weiter + Status + Backup/TXT)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:5}
@@ -52,10 +52,11 @@
     .ok{color:#0a7a0a;font-weight:800}
     .warn{color:#b00020;font-weight:800}
 
+    /* Lernkarte */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
     .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .flashCard{
-      height: calc(100vh - 270px);
+      height: calc(100vh - 300px); /* ggf. auf -340px erhöhen, wenn Buttons zu tief sitzen */
       min-height: 52vh;
       display:flex;flex-direction:column;justify-content:center;align-items:center;
       border:1px solid #e7e7ef;border-radius:18px;background:#fff;
@@ -66,7 +67,7 @@
       position:relative;
     }
     @media (max-width:480px){
-      .flashCard{ height: calc(100vh - 320px); }
+      .flashCard{ height: calc(100vh - 340px); }
     }
     .flashPrompt{
       font-size:30px;font-weight:950;line-height:1.15;
@@ -367,9 +368,13 @@
     return {cards: [], sourceKey: "(leer)"};
   }
 
-  function saveCards(){
+  function persistCardsOnly(){
     localStorage.setItem(PRIMARY_KEY, JSON.stringify(cards));
     sourceKey = PRIMARY_KEY;
+  }
+
+  function saveCards(){
+    persistCardsOnly();
     refreshAll();
   }
 
@@ -488,7 +493,7 @@
 
       const pill1 = document.createElement("span");
       pill1.className="pill";
-      pill1.textContent = `Status: ${card.lastResult==="known" ? "gewusst" : "nicht gewusst"}`;
+      pill1.textContent = `Status: ${card.lastResult==="known" ? "gewusst ✅" : "nicht gewusst ❌"}`;
 
       const pill2 = document.createElement("span");
       pill2.className="pill";
@@ -710,9 +715,7 @@
       btn.classList.toggle("active", n === card.stars);
     });
 
-    const dirLabel = showFront ? "DE→ES" : "ES→DE";
-    document.getElementById("statusHint").textContent =
-      `Status: ${card.lastResult==="known" ? "gewusst" : "nicht gewusst"} · Sterne: ${card.stars} · ${dirLabel}`;
+    updateLearnStatusHint();
   }
 
   function toggleReveal(){
@@ -721,18 +724,65 @@
     document.getElementById("quizAnswer").classList.toggle("show", ui.revealed);
   }
 
+  function updateLearnStatusHint(){
+    if(!ui.currentCard) return;
+    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
+    document.getElementById("statusHint").textContent =
+      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
+  }
+
+  /* AUTO-WEITER: nach Gewusst/Nicht gewusst automatisch weiter */
   function markKnown(known){
     if(!ui.currentCard) return;
+
     ui.currentCard.lastResult = known ? "known" : "unknown";
     ui.currentCard.updatedAt = Date.now();
-    saveCards();
+    persistCardsOnly();
+
+    // Status sichtbar aktualisieren (auch in der "Datenbank"/Liste)
+    updateStatusLine();
+    renderKpis();
+    renderCardList();
+    updateLearnStatusHint();
+
+    // Wenn Modus "Nicht gewusst (nur)" und jetzt "gewusst" -> Karte aus der Runde entfernen
+    if(ui.learnMode === "unknown" && ui.currentCard.lastResult === "known"){
+      const delId = ui.currentCard.id;
+      ui.quizList = ui.quizList.filter(id => id !== delId);
+
+      if(ui.quizList.length === 0){
+        document.getElementById("learnHint").textContent = "Fertig ✅";
+        document.getElementById("flashCard").style.display="none";
+        document.getElementById("flashControls").style.display="none";
+        document.getElementById("flashStars").style.display="none";
+        document.getElementById("progressPill").textContent = "0 / 0";
+        ui.currentCard = null;
+        return;
+      }
+
+      if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
+      showCurrent(); // nicht nextCard(), weil die aktuelle Karte aus der Liste raus ist
+      return;
+    }
+
+    // Normalfall: nächste Karte
+    nextCard();
   }
 
   function setStars(n){
     if(!ui.currentCard) return;
     ui.currentCard.stars = n;
     ui.currentCard.updatedAt = Date.now();
-    saveCards();
+    persistCardsOnly();
+
+    // UI aktualisieren
+    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+      btn.classList.toggle("active", Number(btn.dataset.stars)===n);
+    });
+    updateLearnStatusHint();
+    updateStatusLine();
+    renderKpis();
+    renderCardList();
   }
 
   function deleteCurrentFromLearn(){
@@ -773,6 +823,7 @@
     showCurrent();
   }
 
+  /* Export / Backup */
   function downloadText(filename, text){
     const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -895,7 +946,6 @@
 
         cards = unique;
         saveCards();
-
         report.innerHTML = `<span class="ok">Wiederhergestellt:</span> ${cards.length} Karten`;
       }catch(e){
         report.innerHTML = `<span class="warn">Fehler beim Einlesen:</span> ${String(e)}`;
@@ -920,7 +970,13 @@
     }
   }
 
-  // Wiring Tabs
+  function refreshAll(){
+    updateStatusLine();
+    renderKpis();
+    renderCardList();
+  }
+
+  // Tabs
   document.getElementById("tabManage").onclick = ()=>setActiveTab("manage");
   document.getElementById("tabLearn").onclick = ()=>setActiveTab("learn");
   document.getElementById("tabData").onclick = ()=>setActiveTab("data");
@@ -962,8 +1018,6 @@
   document.getElementById("btnExportTxtFav").onclick = exportTxtFav;
   document.getElementById("btnExportJson").onclick = exportJsonToField;
   document.getElementById("btnReset").onclick = resetAll;
-
-  function refreshAll(){ updateStatusLine(); renderKpis(); renderCardList(); }
 
   // Init
   setNewStars(0);
