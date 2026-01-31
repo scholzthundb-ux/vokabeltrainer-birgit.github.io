@@ -6,7 +6,7 @@
   <title>Vokabeltrainer (Auto-Weiter + Status + Backup/TXT)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
-    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:5}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
     .wrap{max-width:980px;margin:0 auto;padding:14px 16px}
     h1{font-size:18px;margin:0}
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -56,8 +56,8 @@
     .flashWrap{display:flex;flex-direction:column;gap:12px}
     .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .flashCard{
-      height: calc(100vh - 300px); /* ggf. auf -340px erhöhen, wenn Buttons zu tief sitzen */
-      min-height: 52vh;
+      height: calc(100vh - 420px);
+      min-height: 44vh;
       display:flex;flex-direction:column;justify-content:center;align-items:center;
       border:1px solid #e7e7ef;border-radius:18px;background:#fff;
       padding:18px;text-align:center;
@@ -65,9 +65,10 @@
       -webkit-tap-highlight-color: transparent;
       cursor:pointer;
       position:relative;
+      z-index:1;
     }
     @media (max-width:480px){
-      .flashCard{ height: calc(100vh - 340px); }
+      .flashCard{ height: calc(100vh - 460px); min-height: 40vh; }
     }
     .flashPrompt{
       font-size:30px;font-weight:950;line-height:1.15;
@@ -85,16 +86,29 @@
     }
     .flashAnswer.show{display:block}
     .tapHint{margin-top:10px;font-size:12px;color:#666}
+
+    /* WICHTIG: Controls immer über der Karte, immer klickbar */
+    .learnBar{
+      position:sticky;
+      bottom:10px;
+      z-index:1000;
+      background:rgba(246,247,251,0.96);
+      backdrop-filter: blur(6px);
+      border:1px solid #e7e7ef;
+      border-radius:16px;
+      padding:10px;
+    }
     .flashControls{
       display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center
     }
     .flashControls button{min-width:140px}
-    .flashStars{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+    .flashStars{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
 
     .fileRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input[type="file"]{max-width:100%}
   </style>
 </head>
+
 <body>
 <header>
   <div class="wrap">
@@ -106,6 +120,7 @@
     </div>
     <div class="muted small" id="statusLine"></div>
     <div class="muted small" id="storageInfo"></div>
+    <div class="muted small" id="jsAlive">JS: …</div>
   </div>
 </header>
 
@@ -142,8 +157,8 @@
         </div>
 
         <div class="row">
-          <button class="primary" id="btnAdd">Hinzufügen</button>
-          <button id="btnAddStay">Hinzufügen & Felder leeren</button>
+          <button class="primary" id="btnAdd" type="button">Hinzufügen</button>
+          <button id="btnAddStay" type="button">Hinzufügen & Felder leeren</button>
         </div>
 
         <div class="divider"></div>
@@ -174,8 +189,8 @@
             </div>
 
             <div class="row" style="gap:8px">
-              <button class="primary" id="btnBulkAdd">Liste hinzufügen</button>
-              <button id="btnBulkClear">Liste leeren</button>
+              <button class="primary" id="btnBulkAdd" type="button">Liste hinzufügen</button>
+              <button id="btnBulkClear" type="button">Liste leeren</button>
             </div>
           </div>
 
@@ -227,7 +242,7 @@
             <span class="pill" id="modePill">Modus: —</span>
             <span class="pill" id="dirPill">Richtung: —</span>
           </div>
-          <button id="btnBackToManage" class="ghost">⬅️ Zurück zur Eingabe</button>
+          <button id="btnBackToManage" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
         </div>
 
         <div class="row" style="align-items:flex-end">
@@ -260,7 +275,7 @@
             </select>
           </div>
 
-          <button class="primary" id="btnStart">Start</button>
+          <button class="primary" id="btnStart" type="button">Start</button>
         </div>
 
         <div class="divider"></div>
@@ -271,20 +286,23 @@
           <div class="tapHint">Tippe auf die Karte, um die Antwort ein-/auszublenden.</div>
         </div>
 
-        <div class="flashControls" id="flashControls" style="display:none">
-          <button id="btnKnown">✅ Gewusst</button>
-          <button id="btnUnknown">❌ Nicht gewusst</button>
-          <button id="btnDelete" class="danger">🗑️ Löschen</button>
-          <button id="btnNext" class="primary">Weiter ▶️</button>
-        </div>
+        <!-- Sticky Buttons/Status (immer klickbar) -->
+        <div class="learnBar" id="learnBar" style="display:none">
+          <div class="flashControls" id="flashControls">
+            <button id="btnKnown" type="button">✅ Gewusst</button>
+            <button id="btnUnknown" type="button">❌ Nicht gewusst</button>
+            <button id="btnDelete" class="danger" type="button">🗑️ Löschen</button>
+            <button id="btnNext" class="primary" type="button">Weiter ▶️</button>
+          </div>
 
-        <div class="flashStars" id="flashStars" style="display:none">
-          <span class="pill">Favorit:</span>
-          <button class="starBtn tight" data-stars="0" type="button">0</button>
-          <button class="starBtn tight" data-stars="1" type="button">⭐</button>
-          <button class="starBtn tight" data-stars="2" type="button">⭐⭐</button>
-          <button class="starBtn tight" data-stars="3" type="button">⭐⭐⭐</button>
-          <span class="pill" id="statusHint">Status: — · Sterne: —</span>
+          <div class="flashStars" id="flashStars">
+            <span class="pill">Favorit:</span>
+            <button class="starBtn tight" data-stars="0" type="button">0</button>
+            <button class="starBtn tight" data-stars="1" type="button">⭐</button>
+            <button class="starBtn tight" data-stars="2" type="button">⭐⭐</button>
+            <button class="starBtn tight" data-stars="3" type="button">⭐⭐⭐</button>
+            <span class="pill" id="statusHint">Status: — · Sterne: —</span>
+          </div>
         </div>
 
         <div class="muted" id="learnHint">Wähle Modus + Richtung und drücke „Start“.</div>
@@ -297,7 +315,7 @@
     <section class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0;font-size:16px">Import / Export</h2>
-        <button id="btnBackToManage2" class="ghost">⬅️ Zurück zur Eingabe</button>
+        <button id="btnBackToManage2" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
       </div>
 
       <div class="divider"></div>
@@ -307,10 +325,10 @@
         Backup-Datei enthält alle Daten (inkl. Sterne & Status).
       </p>
       <div class="fileRow">
-        <button id="btnBackupJson" class="primary">Backup herunterladen (JSON)</button>
+        <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
         <label class="pill" for="fileRestore">Backup wiederherstellen:</label>
         <input id="fileRestore" type="file" accept=".json,application/json" />
-        <button id="btnRestoreJson">Wiederherstellen</button>
+        <button id="btnRestoreJson" type="button">Wiederherstellen</button>
       </div>
       <div class="muted small" id="restoreReport" style="margin-top:8px"></div>
 
@@ -321,9 +339,9 @@
         Format: <span class="mono">Vorderseite;Rückseite;Sterne;Status</span> (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
       </p>
       <div class="row">
-        <button id="btnExportTxtAll">TXT exportieren (alle, mit Favoriten)</button>
-        <button id="btnExportTxtFav">TXT exportieren (nur Favoriten ⭐/⭐⭐/⭐⭐⭐)</button>
-        <button id="btnExportJson">JSON anzeigen (im Feld)</button>
+        <button id="btnExportTxtAll" type="button">TXT exportieren (alle, mit Favoriten)</button>
+        <button id="btnExportTxtFav" type="button">TXT exportieren (nur Favoriten ⭐/⭐⭐/⭐⭐⭐)</button>
+        <button id="btnExportJson" type="button">JSON anzeigen (im Feld)</button>
       </div>
       <textarea id="exportOut" readonly placeholder="Export erscheint hier…"></textarea>
 
@@ -331,13 +349,18 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px;color:#b00020">Reset</h3>
       <p class="muted small" style="margin-top:0">Löscht alle Karten aus diesem Browser/Handy.</p>
-      <button class="danger" id="btnReset">Alles löschen</button>
+      <button class="danger" id="btnReset" type="button">Alles löschen</button>
     </section>
   </div>
 </main>
 
 <script>
 (function(){
+  // Wenn irgendwo JS abstürzt: sofort sichtbar
+  window.addEventListener("error", (e) => {
+    alert("Fehler im Script: " + (e && e.message ? e.message : "unbekannt"));
+  });
+
   const PRIMARY_KEY = "vokabeltrainer_cards";
   const LEGACY_KEYS = [
     PRIMARY_KEY,
@@ -372,7 +395,6 @@
     localStorage.setItem(PRIMARY_KEY, JSON.stringify(cards));
     sourceKey = PRIMARY_KEY;
   }
-
   function saveCards(){
     persistCardsOnly();
     refreshAll();
@@ -415,7 +437,7 @@
     return a;
   }
 
-  let ui = {
+  const ui = {
     tab: "manage",
     newStars: 0,
     newLast: "unknown",
@@ -431,6 +453,7 @@
     revealed: false
   };
 
+  // ----- UI helpers -----
   function setActiveTab(tab){
     ui.tab = tab;
     document.getElementById("tabManage").classList.toggle("active", tab==="manage");
@@ -500,7 +523,6 @@
       pill2.textContent = `Sterne: ${card.stars}`;
 
       meta.appendChild(pill1); meta.appendChild(pill2);
-
       left.appendChild(front); left.appendChild(back); left.appendChild(meta);
 
       const right = document.createElement("div");
@@ -511,23 +533,29 @@
       starWrap.className="stars";
       [0,1,2,3].forEach(n=>{
         const b=document.createElement("button");
+        b.type="button";
         b.className="starBtn"+(card.stars===n?" active":"");
         b.textContent = n===0 ? "0" : "⭐".repeat(n);
-        b.onclick=()=>{ card.stars=n; card.updatedAt=Date.now(); saveCards(); };
+        b.addEventListener("click", ()=>{
+          card.stars=n; card.updatedAt=Date.now(); saveCards();
+        });
         starWrap.appendChild(b);
       });
 
       const btnKnown = document.createElement("button");
+      btnKnown.type="button";
       btnKnown.textContent="✅ gewusst";
-      btnKnown.onclick=()=>{ card.lastResult="known"; card.updatedAt=Date.now(); saveCards(); };
+      btnKnown.addEventListener("click", ()=>{ card.lastResult="known"; card.updatedAt=Date.now(); saveCards(); });
 
       const btnUnknown = document.createElement("button");
+      btnUnknown.type="button";
       btnUnknown.textContent="❌ nicht gewusst";
-      btnUnknown.onclick=()=>{ card.lastResult="unknown"; card.updatedAt=Date.now(); saveCards(); };
+      btnUnknown.addEventListener("click", ()=>{ card.lastResult="unknown"; card.updatedAt=Date.now(); saveCards(); });
 
       const btnEdit = document.createElement("button");
+      btnEdit.type="button";
       btnEdit.textContent="✏️";
-      btnEdit.onclick=()=>{
+      btnEdit.addEventListener("click", ()=>{
         const nf = prompt("Vorderseite:", card.front);
         if(nf===null) return;
         const nb = prompt("Rückseite:", card.back);
@@ -536,17 +564,18 @@
         card.back = nb.trim();
         card.updatedAt = Date.now();
         saveCards();
-      };
+      });
 
       const btnDel = document.createElement("button");
+      btnDel.type="button";
       btnDel.textContent="🗑️";
       btnDel.className="danger";
-      btnDel.onclick=()=>{
+      btnDel.addEventListener("click", ()=>{
         if(confirm("Diese Karte wirklich löschen?")){
           cards = cards.filter(c=>c.id!==card.id);
           saveCards();
         }
-      };
+      });
 
       right.appendChild(starWrap);
       right.appendChild(btnKnown);
@@ -646,6 +675,14 @@
     return "—";
   }
 
+  function updateLearnStatusHint(){
+    if(!ui.currentCard) return;
+    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
+    document.getElementById("statusHint").textContent =
+      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
+  }
+
+  // ----- Lernen -----
   function startQuiz(){
     ui.learnMode = document.getElementById("learnMode").value;
     ui.direction = document.getElementById("direction").value;
@@ -656,14 +693,12 @@
 
     const hint = document.getElementById("learnHint");
     const flashCard = document.getElementById("flashCard");
-    const controls = document.getElementById("flashControls");
-    const starsRow = document.getElementById("flashStars");
+    const bar = document.getElementById("learnBar");
 
     if(pool.length===0){
       hint.innerHTML = `<span class="warn">Keine Karten gefunden.</span>`;
       flashCard.style.display = "none";
-      controls.style.display="none";
-      starsRow.style.display="none";
+      bar.style.display="none";
       document.getElementById("progressPill").textContent = "0 / 0";
       document.getElementById("modePill").textContent = "Modus: —";
       document.getElementById("dirPill").textContent = "Richtung: —";
@@ -677,8 +712,7 @@
 
     hint.textContent = "";
     flashCard.style.display="";
-    controls.style.display="";
-    starsRow.style.display="";
+    bar.style.display="";
 
     document.getElementById("modePill").textContent = "Modus: " + labelMode(ui.learnMode);
     document.getElementById("dirPill").textContent = "Richtung: " + labelDir(ui.direction);
@@ -724,14 +758,20 @@
     document.getElementById("quizAnswer").classList.toggle("show", ui.revealed);
   }
 
-  function updateLearnStatusHint(){
-    if(!ui.currentCard) return;
-    const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
-    document.getElementById("statusHint").textContent =
-      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
+  function nextCard(){
+    if(ui.quizList.length===0) return;
+    ui.quizIndex++;
+    if(ui.quizIndex >= ui.quizList.length){
+      document.getElementById("learnHint").textContent = "Fertig ✅";
+      document.getElementById("flashCard").style.display="none";
+      document.getElementById("learnBar").style.display="none";
+      document.getElementById("progressPill").textContent = `${ui.quizList.length} / ${ui.quizList.length}`;
+      return;
+    }
+    showCurrent();
   }
 
-  /* AUTO-WEITER: nach Gewusst/Nicht gewusst automatisch weiter */
+  // AUTO-WEITER nach Gewusst / Nicht gewusst
   function markKnown(known){
     if(!ui.currentCard) return;
 
@@ -739,13 +779,13 @@
     ui.currentCard.updatedAt = Date.now();
     persistCardsOnly();
 
-    // Status sichtbar aktualisieren (auch in der "Datenbank"/Liste)
+    // sofort überall sichtbar
     updateStatusLine();
     renderKpis();
     renderCardList();
     updateLearnStatusHint();
 
-    // Wenn Modus "Nicht gewusst (nur)" und jetzt "gewusst" -> Karte aus der Runde entfernen
+    // wenn Modus "Nicht gewusst (nur)" und jetzt "gewusst": aus Runde entfernen
     if(ui.learnMode === "unknown" && ui.currentCard.lastResult === "known"){
       const delId = ui.currentCard.id;
       ui.quizList = ui.quizList.filter(id => id !== delId);
@@ -753,19 +793,16 @@
       if(ui.quizList.length === 0){
         document.getElementById("learnHint").textContent = "Fertig ✅";
         document.getElementById("flashCard").style.display="none";
-        document.getElementById("flashControls").style.display="none";
-        document.getElementById("flashStars").style.display="none";
+        document.getElementById("learnBar").style.display="none";
         document.getElementById("progressPill").textContent = "0 / 0";
         ui.currentCard = null;
         return;
       }
-
       if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
-      showCurrent(); // nicht nextCard(), weil die aktuelle Karte aus der Liste raus ist
+      showCurrent();
       return;
     }
 
-    // Normalfall: nächste Karte
     nextCard();
   }
 
@@ -775,10 +812,10 @@
     ui.currentCard.updatedAt = Date.now();
     persistCardsOnly();
 
-    // UI aktualisieren
     document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
       btn.classList.toggle("active", Number(btn.dataset.stars)===n);
     });
+
     updateLearnStatusHint();
     updateStatusLine();
     renderKpis();
@@ -798,8 +835,7 @@
     if(ui.quizList.length === 0){
       document.getElementById("learnHint").textContent = "Keine Karten mehr in dieser Runde.";
       document.getElementById("flashCard").style.display="none";
-      document.getElementById("flashControls").style.display="none";
-      document.getElementById("flashStars").style.display="none";
+      document.getElementById("learnBar").style.display="none";
       document.getElementById("progressPill").textContent = "0 / 0";
       ui.currentCard = null;
       return;
@@ -809,21 +845,7 @@
     showCurrent();
   }
 
-  function nextCard(){
-    if(ui.quizList.length===0) return;
-    ui.quizIndex++;
-    if(ui.quizIndex >= ui.quizList.length){
-      document.getElementById("learnHint").textContent = "Fertig ✅";
-      document.getElementById("flashCard").style.display="none";
-      document.getElementById("flashControls").style.display="none";
-      document.getElementById("flashStars").style.display="none";
-      document.getElementById("progressPill").textContent = `${ui.quizList.length} / ${ui.quizList.length}`;
-      return;
-    }
-    showCurrent();
-  }
-
-  /* Export / Backup */
+  // ----- Export / Backup -----
   function downloadText(filename, text){
     const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -834,7 +856,6 @@
     a.remove();
     URL.revokeObjectURL(url);
   }
-
   function downloadJson(filename, obj){
     const text = JSON.stringify(obj, null, 2);
     const blob = new Blob([text], {type: "application/json"});
@@ -846,11 +867,9 @@
     a.remove();
     URL.revokeObjectURL(url);
   }
-
   function sanitizeForTxt(s){
     return String(s ?? "").replace(/\r?\n/g, " ").trim();
   }
-
   function toAppTxtLines(list){
     return list.map(c => [
       sanitizeForTxt(c.front),
@@ -859,58 +878,43 @@
       normResult(c.lastResult)
     ].join(";"));
   }
-
   function makeFileName(base, ext){
     const d = new Date();
     const pad = (n)=>String(n).padStart(2,"0");
     const stamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
     return `${base}_${stamp}.${ext}`;
   }
-
   function exportTxtAll(){
     const out = toAppTxtLines(cards).join("\n");
     document.getElementById("exportOut").value = out;
     downloadText(makeFileName("vokabeln_alle", "txt"), out);
   }
-
   function exportTxtFav(){
     const fav = cards.filter(c => normalizeStars(c.stars) > 0);
     const out = toAppTxtLines(fav).join("\n");
     document.getElementById("exportOut").value = out;
     downloadText(makeFileName("vokabeln_favoriten", "txt"), out);
   }
-
   function exportJsonToField(){
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
   }
-
   function backupDownload(){
-    const payload = {
-      app: "vokabeltrainer",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      cards
-    };
-    downloadJson(makeFileName("vokabeltrainer_backup", "json"), payload);
+    const payload = { app:"vokabeltrainer", version:1, exportedAt:new Date().toISOString(), cards };
+    downloadJson(makeFileName("vokabeltrainer_backup","json"), payload);
   }
-
   function restoreFromFile(){
     const input = document.getElementById("fileRestore");
     const report = document.getElementById("restoreReport");
     report.textContent = "";
 
     const file = input.files && input.files[0];
-    if(!file){
-      report.innerHTML = `<span class="warn">Keine Datei ausgewählt.</span>`;
-      return;
-    }
+    if(!file){ report.innerHTML = `<span class="warn">Keine Datei ausgewählt.</span>`; return; }
 
     const reader = new FileReader();
     reader.onload = () => {
       try{
         const parsed = JSON.parse(String(reader.result || ""));
         let incoming = null;
-
         if(Array.isArray(parsed)) incoming = parsed;
         else if(parsed && Array.isArray(parsed.cards)) incoming = parsed.cards;
 
@@ -927,8 +931,7 @@
 
           cleaned.push({
             id: (c && typeof c.id==="string" && c.id) ? c.id : uid(),
-            front,
-            back,
+            front, back,
             stars: normalizeStars(c.stars),
             lastResult: normResult((c && c.lastResult) || "unknown"),
             createdAt: (c && Number.isFinite(c.createdAt)) ? c.createdAt : Date.now(),
@@ -953,12 +956,8 @@
         input.value = "";
       }
     };
-    reader.onerror = () => {
-      report.innerHTML = `<span class="warn">Datei konnte nicht gelesen werden.</span>`;
-    };
     reader.readAsText(file);
   }
-
   function resetAll(){
     if(confirm("Wirklich ALLES löschen? Das kann man nicht rückgängig machen.")){
       cards = [];
@@ -976,50 +975,52 @@
     renderCardList();
   }
 
-  // Tabs
-  document.getElementById("tabManage").onclick = ()=>setActiveTab("manage");
-  document.getElementById("tabLearn").onclick = ()=>setActiveTab("learn");
-  document.getElementById("tabData").onclick = ()=>setActiveTab("data");
-  document.getElementById("btnBackToManage").onclick = ()=>setActiveTab("manage");
-  document.getElementById("btnBackToManage2").onclick = ()=>setActiveTab("manage");
+  // ----- Events -----
+  document.getElementById("tabManage").addEventListener("click", ()=>setActiveTab("manage"));
+  document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
+  document.getElementById("tabData").addEventListener("click", ()=>setActiveTab("data"));
+  document.getElementById("btnBackToManage").addEventListener("click", ()=>setActiveTab("manage"));
+  document.getElementById("btnBackToManage2").addEventListener("click", ()=>setActiveTab("manage"));
 
-  // Manage
-  document.getElementById("btnAdd").onclick = ()=>addCard(false);
-  document.getElementById("btnAddStay").onclick = ()=>addCard(true);
+  document.getElementById("btnAdd").addEventListener("click", ()=>addCard(false));
+  document.getElementById("btnAddStay").addEventListener("click", ()=>addCard(true));
   document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
-    btn.onclick = ()=> setNewStars(Number(btn.dataset.stars));
+    btn.addEventListener("click", ()=> setNewStars(Number(btn.dataset.stars)));
   });
-  document.getElementById("btnSetUnknown").onclick = ()=> setNewResult("unknown");
-  document.getElementById("btnSetKnown").onclick = ()=> setNewResult("known");
-  document.getElementById("btnBulkAdd").onclick = bulkAdd;
-  document.getElementById("btnBulkClear").onclick = ()=>{
+  document.getElementById("btnSetUnknown").addEventListener("click", ()=> setNewResult("unknown"));
+  document.getElementById("btnSetKnown").addEventListener("click", ()=> setNewResult("known"));
+  document.getElementById("btnBulkAdd").addEventListener("click", bulkAdd);
+  document.getElementById("btnBulkClear").addEventListener("click", ()=>{
     document.getElementById("bulkEntry").value="";
     document.getElementById("bulkReport").textContent="";
-  };
+  });
   document.getElementById("search").addEventListener("input", e=>{ ui.search=e.target.value; renderCardList(); });
   document.getElementById("filter").addEventListener("change", e=>{ ui.filter=e.target.value; renderCardList(); });
 
-  // Learn
-  document.getElementById("btnStart").onclick = startQuiz;
-  document.getElementById("btnKnown").onclick = ()=>markKnown(true);
-  document.getElementById("btnUnknown").onclick = ()=>markKnown(false);
-  document.getElementById("btnNext").onclick = nextCard;
-  document.getElementById("btnDelete").onclick = deleteCurrentFromLearn;
-  document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
-    btn.onclick = ()=> setStars(Number(btn.dataset.stars));
-  });
-  document.getElementById("flashCard").addEventListener("click", toggleReveal);
-  document.getElementById("flashCard").addEventListener("touchend", (e)=>{ e.preventDefault(); toggleReveal(); }, {passive:false});
+  document.getElementById("btnStart").addEventListener("click", startQuiz);
 
-  // Data
-  document.getElementById("btnBackupJson").onclick = backupDownload;
-  document.getElementById("btnRestoreJson").onclick = restoreFromFile;
-  document.getElementById("btnExportTxtAll").onclick = exportTxtAll;
-  document.getElementById("btnExportTxtFav").onclick = exportTxtFav;
-  document.getElementById("btnExportJson").onclick = exportJsonToField;
-  document.getElementById("btnReset").onclick = resetAll;
+  // Karte: nur Antwort ein/aus
+  document.getElementById("flashCard").addEventListener("click", toggleReveal);
+
+  // Buttons: Markierung + Auto-Weiter
+  document.getElementById("btnKnown").addEventListener("click", ()=>markKnown(true));
+  document.getElementById("btnUnknown").addEventListener("click", ()=>markKnown(false));
+  document.getElementById("btnNext").addEventListener("click", nextCard);
+  document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
+
+  document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+    btn.addEventListener("click", ()=> setStars(Number(btn.dataset.stars)));
+  });
+
+  document.getElementById("btnBackupJson").addEventListener("click", backupDownload);
+  document.getElementById("btnRestoreJson").addEventListener("click", restoreFromFile);
+  document.getElementById("btnExportTxtAll").addEventListener("click", exportTxtAll);
+  document.getElementById("btnExportTxtFav").addEventListener("click", exportTxtFav);
+  document.getElementById("btnExportJson").addEventListener("click", exportJsonToField);
+  document.getElementById("btnReset").addEventListener("click", resetAll);
 
   // Init
+  document.getElementById("jsAlive").textContent = "JS: läuft ✅";
   setNewStars(0);
   setNewResult("unknown");
   document.getElementById("filter").value = "all";
