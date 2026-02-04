@@ -1,9 +1,10 @@
+  
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (Auto-Weiter + Status + Backup/TXT)</title>
+  <title>Vokabeltrainer (0–5 Sterne · Richtungs-Status · Auto-Fachwechsel · Backup/TXT)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -52,11 +53,15 @@
     .ok{color:#0a7a0a;font-weight:800}
     .warn{color:#b00020;font-weight:800}
 
+    /* Stern-Fächer Anzeige */
+    .bins{display:flex;gap:6px;flex-wrap:wrap}
+    .bin{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:4px 10px;background:#fafafa}
+
     /* Lernkarte */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
     .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .flashCard{
-      height: calc(100vh - 420px);
+      height: calc(100vh - 440px);
       min-height: 44vh;
       display:flex;flex-direction:column;justify-content:center;align-items:center;
       border:1px solid #e7e7ef;border-radius:18px;background:#fff;
@@ -68,7 +73,7 @@
       z-index:1;
     }
     @media (max-width:480px){
-      .flashCard{ height: calc(100vh - 460px); min-height: 40vh; }
+      .flashCard{ height: calc(100vh - 500px); min-height: 40vh; }
     }
     .flashPrompt{
       font-size:30px;font-weight:950;line-height:1.15;
@@ -87,7 +92,7 @@
     .flashAnswer.show{display:block}
     .tapHint{margin-top:10px;font-size:12px;color:#666}
 
-    /* WICHTIG: Controls immer über der Karte, immer klickbar */
+    /* Controls immer über der Karte, immer klickbar */
     .learnBar{
       position:sticky;
       bottom:10px;
@@ -147,12 +152,16 @@
             <button class="starBtn" data-stars="1" type="button">⭐</button>
             <button class="starBtn" data-stars="2" type="button">⭐⭐</button>
             <button class="starBtn" data-stars="3" type="button">⭐⭐⭐</button>
+            <button class="starBtn" data-stars="4" type="button">⭐⭐⭐⭐</button>
+            <button class="starBtn" data-stars="5" type="button">⭐⭐⭐⭐⭐</button>
           </div>
 
           <span class="pill">Startstatus:</span>
-          <div class="row" style="gap:6px">
-            <button id="btnSetUnknown" type="button" class="starBtn active">nicht gewusst</button>
-            <button id="btnSetKnown" type="button" class="starBtn">gewusst</button>
+          <div class="row" style="gap:6px;flex-wrap:wrap">
+            <button id="btnSetUnknownFront" type="button" class="starBtn active">❌ DE→ES</button>
+            <button id="btnSetKnownFront" type="button" class="starBtn">✅ DE→ES</button>
+            <button id="btnSetUnknownBack" type="button" class="starBtn active">❌ ES→DE</button>
+            <button id="btnSetKnownBack" type="button" class="starBtn">✅ ES→DE</button>
           </div>
         </div>
 
@@ -167,7 +176,7 @@
           <summary>Listen-Eingabe (mehrere Zeilen)</summary>
           <p class="muted small" style="margin:8px 0 10px 0">
             Pro Zeile: <span class="mono">Vorderseite;Rückseite</span>. Optional:
-            <span class="mono">;Sterne(0-3);Status(known/unknown)</span>
+            <span class="mono">;Sterne(0-5);StatusDE(known/unknown);StatusES(known/unknown)</span>
           </p>
           <textarea id="bulkEntry"></textarea>
 
@@ -180,10 +189,16 @@
                   <option value="1">Sterne 1</option>
                   <option value="2">Sterne 2</option>
                   <option value="3">Sterne 3</option>
+                  <option value="4">Sterne 4</option>
+                  <option value="5">Sterne 5</option>
                 </select>
-                <select id="bulkDefaultStatus" style="width:auto">
-                  <option value="unknown">Status: nicht gewusst</option>
-                  <option value="known">Status: gewusst</option>
+                <select id="bulkDefaultStatusFront" style="width:auto">
+                  <option value="unknown">DE→ES: nicht gewusst</option>
+                  <option value="known">DE→ES: gewusst</option>
+                </select>
+                <select id="bulkDefaultStatusBack" style="width:auto">
+                  <option value="unknown">ES→DE: nicht gewusst</option>
+                  <option value="known">ES→DE: gewusst</option>
                 </select>
               </div>
             </div>
@@ -201,11 +216,16 @@
 
     <section class="card">
       <h2 style="margin:0 0 10px 0;font-size:16px">Übersicht</h2>
+
       <div class="kpi">
         <div class="box"><div class="muted">Karten</div><div class="num" id="kpiTotal">0</div></div>
-        <div class="box"><div class="muted">Nicht gewusst</div><div class="num" id="kpiUnknown">0</div></div>
-        <div class="box"><div class="muted">⭐/⭐⭐/⭐⭐⭐</div><div class="num" id="kpiStars">0</div></div>
+        <div class="box"><div class="muted">❌ DE→ES</div><div class="num" id="kpiUnknownFront">0</div></div>
+        <div class="box"><div class="muted">❌ ES→DE</div><div class="num" id="kpiUnknownBack">0</div></div>
       </div>
+
+      <div class="divider"></div>
+      <div class="muted small" style="margin-bottom:6px">Fächer (Sterne):</div>
+      <div class="bins" id="starBins"></div>
 
       <div class="divider"></div>
 
@@ -214,14 +234,19 @@
           <label for="search">Suche</label>
           <input id="search" type="text" placeholder="Suche in Vorder- oder Rückseite…" />
         </div>
-        <div style="flex:1 1 220px;min-width:220px">
+        <div style="flex:1 1 260px;min-width:220px">
           <label for="filter">Filter</label>
           <select id="filter">
             <option value="all">Alle</option>
-            <option value="unknown">Nur nicht gewusst</option>
-            <option value="star1">Nur ⭐ (1 Stern)</option>
-            <option value="star2">Nur ⭐⭐ (2 Sterne)</option>
-            <option value="star3">Nur ⭐⭐⭐ (3 Sterne)</option>
+            <option value="unknownFront">Nur ❌ DE→ES</option>
+            <option value="unknownBack">Nur ❌ ES→DE</option>
+            <option value="unknownAny">Nur ❌ (irgendeine Richtung)</option>
+            <option value="star0">Nur Fach 0</option>
+            <option value="star1">Nur ⭐ (1)</option>
+            <option value="star2">Nur ⭐⭐ (2)</option>
+            <option value="star3">Nur ⭐⭐⭐ (3)</option>
+            <option value="star4">Nur ⭐⭐⭐⭐ (4)</option>
+            <option value="star5">Nur ⭐⭐⭐⭐⭐ (5)</option>
           </select>
         </div>
       </div>
@@ -250,18 +275,21 @@
             <label for="learnMode">Lernmodus</label>
             <select id="learnMode">
               <option value="all">Alle Karten</option>
-              <option value="unknown">Nicht gewusst (nur)</option>
-              <option value="star1">Favoriten ⭐ (1 Stern)</option>
-              <option value="star2">Favoriten ⭐⭐ (2 Sterne)</option>
-              <option value="star3">Favoriten ⭐⭐⭐ (3 Sterne)</option>
+              <option value="unknown">Nicht gewusst (abhängig von Richtung)</option>
+              <option value="star0">Fach 0</option>
+              <option value="star1">Favoriten ⭐ (1)</option>
+              <option value="star2">Favoriten ⭐⭐ (2)</option>
+              <option value="star3">Favoriten ⭐⭐⭐ (3)</option>
+              <option value="star4">Favoriten ⭐⭐⭐⭐ (4)</option>
+              <option value="star5">Favoriten ⭐⭐⭐⭐⭐ (5)</option>
             </select>
           </div>
 
           <div style="flex:0 0 auto">
             <label for="direction">Richtung</label>
             <select id="direction">
-              <option value="front">Vorderseite → Rückseite</option>
-              <option value="back">Rückseite → Vorderseite</option>
+              <option value="front">Vorderseite → Rückseite (DE→ES)</option>
+              <option value="back">Rückseite → Vorderseite (ES→DE)</option>
               <option value="mixed">Gemischt (beide Richtungen zufällig)</option>
             </select>
           </div>
@@ -286,22 +314,24 @@
           <div class="tapHint">Tippe auf die Karte, um die Antwort ein-/auszublenden.</div>
         </div>
 
-        <!-- Sticky Buttons/Status (immer klickbar) -->
         <div class="learnBar" id="learnBar" style="display:none">
           <div class="flashControls" id="flashControls">
             <button id="btnKnown" type="button">✅ Gewusst</button>
             <button id="btnUnknown" type="button">❌ Nicht gewusst</button>
+            <button id="btnEditLearn" type="button">✏️ Bearbeiten</button>
             <button id="btnDelete" class="danger" type="button">🗑️ Löschen</button>
             <button id="btnNext" class="primary" type="button">Weiter ▶️</button>
           </div>
 
           <div class="flashStars" id="flashStars">
-            <span class="pill">Favorit:</span>
+            <span class="pill">Fach:</span>
             <button class="starBtn tight" data-stars="0" type="button">0</button>
             <button class="starBtn tight" data-stars="1" type="button">⭐</button>
             <button class="starBtn tight" data-stars="2" type="button">⭐⭐</button>
             <button class="starBtn tight" data-stars="3" type="button">⭐⭐⭐</button>
-            <span class="pill" id="statusHint">Status: — · Sterne: —</span>
+            <button class="starBtn tight" data-stars="4" type="button">⭐⭐⭐⭐</button>
+            <button class="starBtn tight" data-stars="5" type="button">⭐⭐⭐⭐⭐</button>
+            <span class="pill" id="statusHint">Status: —</span>
           </div>
         </div>
 
@@ -322,7 +352,7 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
       <p class="muted small" style="margin-top:0">
-        Backup-Datei enthält alle Daten (inkl. Sterne & Status).
+        Backup-Datei enthält alle Daten (inkl. Sterne & Status pro Richtung).
       </p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
@@ -336,11 +366,12 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px">TXT Export</h3>
       <p class="muted small" style="margin-top:0">
-        Format: <span class="mono">Vorderseite;Rückseite;Sterne;Status</span> (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
+        Format: <span class="mono">Vorderseite;Rückseite;Sterne;StatusDE;StatusES</span>
+        (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
       </p>
       <div class="row">
-        <button id="btnExportTxtAll" type="button">TXT exportieren (alle, mit Favoriten)</button>
-        <button id="btnExportTxtFav" type="button">TXT exportieren (nur Favoriten ⭐/⭐⭐/⭐⭐⭐)</button>
+        <button id="btnExportTxtAll" type="button">TXT exportieren (alle)</button>
+        <button id="btnExportTxtFav" type="button">TXT exportieren (nur Sterne &gt; 0)</button>
         <button id="btnExportJson" type="button">JSON anzeigen (im Feld)</button>
       </div>
       <textarea id="exportOut" readonly placeholder="Export erscheint hier…"></textarea>
@@ -356,7 +387,6 @@
 
 <script>
 (function(){
-  // Wenn irgendwo JS abstürzt: sofort sichtbar
   window.addEventListener("error", (e) => {
     alert("Fehler im Script: " + (e && e.message ? e.message : "unbekannt"));
   });
@@ -372,6 +402,7 @@
   ];
 
   let {cards, sourceKey} = loadWithMigration();
+  cards = (cards||[]).map(ensureCardShape);
 
   function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
   function safeParse(raw){ try{ return JSON.parse(raw); }catch{ return null; } }
@@ -403,24 +434,78 @@
   function normalizeStars(n){
     n = Number(n);
     if(Number.isNaN(n)) return 0;
-    return Math.max(0, Math.min(3, Math.round(n)));
+    return Math.max(0, Math.min(5, Math.round(n)));
   }
   function normResult(s){ return (s==="known"||s==="unknown") ? s : "unknown"; }
+
+  function ensureCardShape(c){
+    const now = Date.now();
+    const card = Object.assign({}, c);
+
+    card.id = (typeof card.id==="string" && card.id) ? card.id : uid();
+    card.front = (card.front||"").toString();
+    card.back  = (card.back||"").toString();
+    card.stars = normalizeStars(card.stars);
+
+    // Alt: lastResult -> beide Richtungen übernehmen, falls Richtungsfelder fehlen
+    const legacy = normResult(card.lastResult);
+    if(!card.lastResultFront) card.lastResultFront = (card.lastResult ? legacy : "unknown");
+    if(!card.lastResultBack)  card.lastResultBack  = (card.lastResult ? legacy : "unknown");
+
+    card.lastResultFront = normResult(card.lastResultFront);
+    card.lastResultBack  = normResult(card.lastResultBack);
+
+    card.createdAt = Number.isFinite(card.createdAt) ? card.createdAt : now;
+    card.updatedAt = Number.isFinite(card.updatedAt) ? card.updatedAt : now;
+
+    // cleanup legacy field optional (nicht zwingend)
+    return card;
+  }
+
+  function stripLeadingArticle(s){
+    s = (s||"").toString().trim();
+    s = s.replace(/^[„"'\(\[\{]+/g, "").trim();
+
+    const articles = [
+      // Deutsch
+      "der","die","das","ein","eine","einen","einem","einer","eines",
+      // Spanisch
+      "el","la","los","las","un","una","unos","unas",
+      // Englisch
+      "a","an","the"
+    ];
+
+    const lower = s.toLowerCase();
+    for(const art of articles){
+      const prefix = art + " ";
+      if(lower.startsWith(prefix)){
+        return s.slice(prefix.length).trim();
+      }
+    }
+    return s;
+  }
 
   function textIncludes(card, q){
     if(!q) return true;
     q = q.trim().toLowerCase();
     return (card.front||"").toLowerCase().includes(q) || (card.back||"").toLowerCase().includes(q);
   }
-  function applyFilter(list, filter){
+
+  function applyFilterManage(list, filter){
     switch(filter){
-      case "unknown": return list.filter(c => c.lastResult === "unknown");
-      case "star1": return list.filter(c => c.stars === 1);
-      case "star2": return list.filter(c => c.stars === 2);
-      case "star3": return list.filter(c => c.stars === 3);
+      case "unknownFront": return list.filter(c => c.lastResultFront === "unknown");
+      case "unknownBack": return list.filter(c => c.lastResultBack === "unknown");
+      case "unknownAny": return list.filter(c => c.lastResultFront === "unknown" || c.lastResultBack === "unknown");
+      case "star0": return list.filter(c => normalizeStars(c.stars) === 0);
+      case "star1": return list.filter(c => normalizeStars(c.stars) === 1);
+      case "star2": return list.filter(c => normalizeStars(c.stars) === 2);
+      case "star3": return list.filter(c => normalizeStars(c.stars) === 3);
+      case "star4": return list.filter(c => normalizeStars(c.stars) === 4);
+      case "star5": return list.filter(c => normalizeStars(c.stars) === 5);
       default: return list;
     }
   }
+
   function shuffle(arr){
     const a=[...arr];
     for(let i=a.length-1;i>0;i--){
@@ -440,7 +525,8 @@
   const ui = {
     tab: "manage",
     newStars: 0,
-    newLast: "unknown",
+    newFront: "unknown",
+    newBack: "unknown",
     filter: "all",
     search: "",
     quizList: [],
@@ -465,20 +551,40 @@
     updateStatusLine();
   }
 
+  function countsByStars(){
+    const bins = {0:0,1:0,2:0,3:0,4:0,5:0};
+    for(const c of cards){
+      bins[normalizeStars(c.stars)]++;
+    }
+    return bins;
+  }
+
   function updateStatusLine(){
     const total = cards.length;
-    const unknown = cards.filter(c=>c.lastResult==="unknown").length;
-    const stars = cards.filter(c=>c.stars>0).length;
+    const unknownFront = cards.filter(c=>c.lastResultFront==="unknown").length;
+    const unknownBack  = cards.filter(c=>c.lastResultBack==="unknown").length;
+    const fav = cards.filter(c=>normalizeStars(c.stars)>0).length;
     document.getElementById("statusLine").textContent =
-      `Karten: ${total} · Nicht gewusst: ${unknown} · Favoriten: ${stars}`;
+      `Karten: ${total} · ❌ DE→ES: ${unknownFront} · ❌ ES→DE: ${unknownBack} · Sterne>0: ${fav}`;
     document.getElementById("storageInfo").textContent =
       `Speicher: ${PRIMARY_KEY} (gefunden aus: ${sourceKey})`;
   }
 
   function renderKpis(){
     document.getElementById("kpiTotal").textContent = cards.length;
-    document.getElementById("kpiUnknown").textContent = cards.filter(c=>c.lastResult==="unknown").length;
-    document.getElementById("kpiStars").textContent = cards.filter(c=>c.stars>0).length;
+    document.getElementById("kpiUnknownFront").textContent = cards.filter(c=>c.lastResultFront==="unknown").length;
+    document.getElementById("kpiUnknownBack").textContent = cards.filter(c=>c.lastResultBack==="unknown").length;
+
+    const bins = countsByStars();
+    const starBins = document.getElementById("starBins");
+    starBins.innerHTML = "";
+    for(let n=0;n<=5;n++){
+      const el = document.createElement("span");
+      el.className = "bin";
+      const label = n===0 ? "0" : "⭐".repeat(n);
+      el.textContent = `${label}: ${bins[n]}`;
+      starBins.appendChild(el);
+    }
   }
 
   function renderCardList(){
@@ -486,13 +592,24 @@
     const emptyHint = document.getElementById("emptyHint");
     listEl.innerHTML = "";
 
-    let list = cards.filter(c => textIncludes(c, ui.search));
-    list = applyFilter(list, ui.filter);
+    let list = cards.map(ensureCardShape).filter(c => textIncludes(c, ui.search));
+    list = applyFilterManage(list, ui.filter);
 
     if(list.length === 0){ emptyHint.style.display=""; return; }
     emptyHint.style.display="none";
 
-    list.sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0)).forEach(card=>{
+    // Alphabetisch, Artikel ignorieren (Vorderseite als Hauptschlüssel)
+    list.sort((a,b)=>{
+      const A0 = stripLeadingArticle(a.front);
+      const B0 = stripLeadingArticle(b.front);
+      const c = A0.localeCompare(B0, "de", {sensitivity:"base"});
+      if(c!==0) return c;
+      const c2 = (a.front||"").trim().localeCompare((b.front||"").trim(), "de", {sensitivity:"base"});
+      if(c2!==0) return c2;
+      return (a.back||"").trim().localeCompare((b.back||"").trim(), "de", {sensitivity:"base"});
+    });
+
+    list.forEach(card=>{
       const item = document.createElement("div");
       item.className="item";
 
@@ -514,15 +631,19 @@
       meta.className="row";
       meta.style.marginTop="8px";
 
-      const pill1 = document.createElement("span");
-      pill1.className="pill";
-      pill1.textContent = `Status: ${card.lastResult==="known" ? "gewusst ✅" : "nicht gewusst ❌"}`;
+      const pillDE = document.createElement("span");
+      pillDE.className="pill";
+      pillDE.textContent = `DE→ES: ${card.lastResultFront==="known" ? "gewusst ✅" : "nicht gewusst ❌"}`;
 
-      const pill2 = document.createElement("span");
-      pill2.className="pill";
-      pill2.textContent = `Sterne: ${card.stars}`;
+      const pillES = document.createElement("span");
+      pillES.className="pill";
+      pillES.textContent = `ES→DE: ${card.lastResultBack==="known" ? "gewusst ✅" : "nicht gewusst ❌"}`;
 
-      meta.appendChild(pill1); meta.appendChild(pill2);
+      const pillStars = document.createElement("span");
+      pillStars.className="pill";
+      pillStars.textContent = `Fach: ${card.stars}`;
+
+      meta.appendChild(pillDE); meta.appendChild(pillES); meta.appendChild(pillStars);
       left.appendChild(front); left.appendChild(back); left.appendChild(meta);
 
       const right = document.createElement("div");
@@ -531,26 +652,69 @@
 
       const starWrap = document.createElement("div");
       starWrap.className="stars";
-      [0,1,2,3].forEach(n=>{
+      [0,1,2,3,4,5].forEach(n=>{
         const b=document.createElement("button");
         b.type="button";
-        b.className="starBtn"+(card.stars===n?" active":"");
+        b.className="starBtn"+(normalizeStars(card.stars)===n?" active":"");
         b.textContent = n===0 ? "0" : "⭐".repeat(n);
         b.addEventListener("click", ()=>{
-          card.stars=n; card.updatedAt=Date.now(); saveCards();
+          card.stars=n; card.updatedAt=Date.now();
+          // write back to real array
+          const idx = cards.findIndex(x=>x.id===card.id);
+          if(idx>=0) cards[idx] = ensureCardShape(Object.assign({}, cards[idx], card));
+          saveCards();
         });
         starWrap.appendChild(b);
       });
 
-      const btnKnown = document.createElement("button");
-      btnKnown.type="button";
-      btnKnown.textContent="✅ gewusst";
-      btnKnown.addEventListener("click", ()=>{ card.lastResult="known"; card.updatedAt=Date.now(); saveCards(); });
+      // Status getrennt pro Richtung
+      const btnKnownFront = document.createElement("button");
+      btnKnownFront.type="button";
+      btnKnownFront.textContent="✅ DE→ES";
+      btnKnownFront.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultFront="known";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
 
-      const btnUnknown = document.createElement("button");
-      btnUnknown.type="button";
-      btnUnknown.textContent="❌ nicht gewusst";
-      btnUnknown.addEventListener("click", ()=>{ card.lastResult="unknown"; card.updatedAt=Date.now(); saveCards(); });
+      const btnUnknownFront = document.createElement("button");
+      btnUnknownFront.type="button";
+      btnUnknownFront.textContent="❌ DE→ES";
+      btnUnknownFront.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultFront="unknown";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
+
+      const btnKnownBack = document.createElement("button");
+      btnKnownBack.type="button";
+      btnKnownBack.textContent="✅ ES→DE";
+      btnKnownBack.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultBack="known";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
+
+      const btnUnknownBack = document.createElement("button");
+      btnUnknownBack.type="button";
+      btnUnknownBack.textContent="❌ ES→DE";
+      btnUnknownBack.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultBack="unknown";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
 
       const btnEdit = document.createElement("button");
       btnEdit.type="button";
@@ -560,10 +724,14 @@
         if(nf===null) return;
         const nb = prompt("Rückseite:", card.back);
         if(nb===null) return;
-        card.front = nf.trim();
-        card.back = nb.trim();
-        card.updatedAt = Date.now();
-        saveCards();
+
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].front = nf.trim();
+          cards[idx].back  = nb.trim();
+          cards[idx].updatedAt = Date.now();
+          saveCards();
+        }
       });
 
       const btnDel = document.createElement("button");
@@ -578,8 +746,10 @@
       });
 
       right.appendChild(starWrap);
-      right.appendChild(btnKnown);
-      right.appendChild(btnUnknown);
+      right.appendChild(btnKnownFront);
+      right.appendChild(btnUnknownFront);
+      right.appendChild(btnKnownBack);
+      right.appendChild(btnUnknownBack);
       right.appendChild(btnEdit);
       right.appendChild(btnDel);
 
@@ -596,10 +766,15 @@
       btn.classList.toggle("active", Number(btn.dataset.stars)===n);
     });
   }
-  function setNewResult(res){
-    ui.newLast = res;
-    document.getElementById("btnSetUnknown").classList.toggle("active", res==="unknown");
-    document.getElementById("btnSetKnown").classList.toggle("active", res==="known");
+  function setNewResultFront(res){
+    ui.newFront = res;
+    document.getElementById("btnSetUnknownFront").classList.toggle("active", res==="unknown");
+    document.getElementById("btnSetKnownFront").classList.toggle("active", res==="known");
+  }
+  function setNewResultBack(res){
+    ui.newBack = res;
+    document.getElementById("btnSetUnknownBack").classList.toggle("active", res==="unknown");
+    document.getElementById("btnSetKnownBack").classList.toggle("active", res==="known");
   }
 
   function addCard(stay){
@@ -607,7 +782,13 @@
     const back  = document.getElementById("inBack").value.trim();
     if(!front || !back){ alert("Bitte Vorderseite UND Rückseite ausfüllen."); return; }
     const now = Date.now();
-    cards.unshift({ id: uid(), front, back, stars: ui.newStars, lastResult: ui.newLast, createdAt: now, updatedAt: now });
+    cards.unshift(ensureCardShape({
+      id: uid(), front, back,
+      stars: ui.newStars,
+      lastResultFront: ui.newFront,
+      lastResultBack: ui.newBack,
+      createdAt: now, updatedAt: now
+    }));
     saveCards();
     if(stay){
       document.getElementById("inFront").value="";
@@ -628,7 +809,8 @@
     }
 
     const defaultStars = normalizeStars(document.getElementById("bulkDefaultStars").value);
-    const defaultStatus = normResult(document.getElementById("bulkDefaultStatus").value);
+    const defaultFront = normResult(document.getElementById("bulkDefaultStatusFront").value);
+    const defaultBack  = normResult(document.getElementById("bulkDefaultStatusBack").value);
 
     const lines = raw.split(/\r?\n/);
     let added = 0, skipped = 0;
@@ -646,9 +828,16 @@
       if(!front || !back){ skipped++; continue; }
 
       const stars = (parts.length>=3 && parts[2]!== "") ? normalizeStars(parts[2]) : defaultStars;
-      const status = (parts.length>=4 && parts[3]!== "") ? normResult(parts[3].toLowerCase()) : defaultStatus;
+      const stFront = (parts.length>=4 && parts[3]!== "") ? normResult(parts[3].toLowerCase()) : defaultFront;
+      const stBack  = (parts.length>=5 && parts[4]!== "") ? normResult(parts[4].toLowerCase()) : defaultBack;
 
-      cards.unshift({ id: uid(), front, back, stars, lastResult: status, createdAt: now, updatedAt: now });
+      cards.unshift(ensureCardShape({
+        id: uid(), front, back,
+        stars,
+        lastResultFront: stFront,
+        lastResultBack: stBack,
+        createdAt: now, updatedAt: now
+      }));
       added++;
     }
 
@@ -663,23 +852,53 @@
   function labelMode(m){
     if(m==="all") return "Alle";
     if(m==="unknown") return "Nicht gewusst";
+    if(m==="star0") return "Fach 0";
     if(m==="star1") return "⭐";
     if(m==="star2") return "⭐⭐";
     if(m==="star3") return "⭐⭐⭐";
+    if(m==="star4") return "⭐⭐⭐⭐";
+    if(m==="star5") return "⭐⭐⭐⭐⭐";
     return "—";
   }
   function labelDir(d){
-    if(d==="front") return "V→R";
-    if(d==="back") return "R→V";
+    if(d==="front") return "DE→ES";
+    if(d==="back") return "ES→DE";
     if(d==="mixed") return "Gemischt";
     return "—";
+  }
+
+  function currentDirKey(){
+    // ui.currentSide ist die tatsächlich gezogene Richtung der aktuellen Karte
+    return (ui.currentSide==="front") ? "lastResultFront" : "lastResultBack";
+  }
+
+  function passLearnMode(card){
+    const m = ui.learnMode;
+    if(m==="all") return true;
+
+    if(m==="unknown"){
+      // abhängig von gewählter Richtung
+      if(ui.direction==="front") return card.lastResultFront==="unknown";
+      if(ui.direction==="back")  return card.lastResultBack==="unknown";
+      // mixed: wenn in irgendeiner Richtung unbekannt
+      return (card.lastResultFront==="unknown" || card.lastResultBack==="unknown");
+    }
+
+    if(m==="star0") return normalizeStars(card.stars)===0;
+    if(m==="star1") return normalizeStars(card.stars)===1;
+    if(m==="star2") return normalizeStars(card.stars)===2;
+    if(m==="star3") return normalizeStars(card.stars)===3;
+    if(m==="star4") return normalizeStars(card.stars)===4;
+    if(m==="star5") return normalizeStars(card.stars)===5;
+    return true;
   }
 
   function updateLearnStatusHint(){
     if(!ui.currentCard) return;
     const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
+    const res = (ui.currentSide==="front") ? ui.currentCard.lastResultFront : ui.currentCard.lastResultBack;
     document.getElementById("statusHint").textContent =
-      `Status: ${ui.currentCard.lastResult==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Sterne: ${ui.currentCard.stars} · ${dirLabel}`;
+      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}`;
   }
 
   // ----- Lernen -----
@@ -688,7 +907,7 @@
     ui.direction = document.getElementById("direction").value;
     ui.order = document.getElementById("order").value;
 
-    let pool = applyFilter(cards, ui.learnMode);
+    let pool = cards.map(ensureCardShape).filter(passLearnMode);
     pool = sortList(pool, ui.order);
 
     const hint = document.getElementById("learnHint");
@@ -725,7 +944,7 @@
     const card = cards.find(c=>c.id===id);
     if(!card){ nextCard(); return; }
 
-    ui.currentCard = card;
+    ui.currentCard = ensureCardShape(card);
 
     let side = ui.direction;
     if(ui.direction === "mixed"){
@@ -736,17 +955,17 @@
     const showFront = (side === "front");
 
     document.getElementById("progressPill").textContent = `${ui.quizIndex+1} / ${ui.quizList.length}`;
-    document.getElementById("quizPrompt").textContent = showFront ? card.front : card.back;
+    document.getElementById("quizPrompt").textContent = showFront ? ui.currentCard.front : ui.currentCard.back;
 
     const ansEl = document.getElementById("quizAnswer");
-    ansEl.textContent = showFront ? card.back : card.front;
+    ansEl.textContent = showFront ? ui.currentCard.back : ui.currentCard.front;
 
     ui.revealed = false;
     ansEl.classList.remove("show");
 
     document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
       const n = Number(btn.dataset.stars);
-      btn.classList.toggle("active", n === card.stars);
+      btn.classList.toggle("active", n === normalizeStars(ui.currentCard.stars));
     });
 
     updateLearnStatusHint();
@@ -771,36 +990,53 @@
     showCurrent();
   }
 
-  // AUTO-WEITER nach Gewusst / Nicht gewusst
+  // AUTO-Fachwechsel + Status pro Richtung + Auto-Weiter
   function markKnown(known){
     if(!ui.currentCard) return;
 
-    ui.currentCard.lastResult = known ? "known" : "unknown";
-    ui.currentCard.updatedAt = Date.now();
+    const idx = cards.findIndex(c=>c.id===ui.currentCard.id);
+    if(idx<0) return;
+
+    // Status je nach aktueller Richtung speichern
+    const key = (ui.currentSide==="front") ? "lastResultFront" : "lastResultBack";
+    cards[idx][key] = known ? "known" : "unknown";
+
+    // Fachwechsel: gewusst => 1 Fach runter, nicht gewusst => 1 Fach hoch
+    const curStars = normalizeStars(cards[idx].stars);
+    const newStars = known ? Math.max(0, curStars - 1) : Math.min(5, curStars + 1);
+    cards[idx].stars = newStars;
+
+    cards[idx].updatedAt = Date.now();
     persistCardsOnly();
 
-    // sofort überall sichtbar
+    // UI sofort aktualisieren
     updateStatusLine();
     renderKpis();
     renderCardList();
-    updateLearnStatusHint();
 
-    // wenn Modus "Nicht gewusst (nur)" und jetzt "gewusst": aus Runde entfernen
-    if(ui.learnMode === "unknown" && ui.currentCard.lastResult === "known"){
-      const delId = ui.currentCard.id;
-      ui.quizList = ui.quizList.filter(id => id !== delId);
+    // Wenn Modus "Nicht gewusst" und Karte ist (im relevanten Sinne) nicht mehr passend, aus Runde entfernen
+    if(ui.learnMode === "unknown"){
+      let stillUnknown = true;
+      if(ui.direction==="front") stillUnknown = (cards[idx].lastResultFront==="unknown");
+      else if(ui.direction==="back") stillUnknown = (cards[idx].lastResultBack==="unknown");
+      else stillUnknown = (cards[idx].lastResultFront==="unknown" || cards[idx].lastResultBack==="unknown");
 
-      if(ui.quizList.length === 0){
-        document.getElementById("learnHint").textContent = "Fertig ✅";
-        document.getElementById("flashCard").style.display="none";
-        document.getElementById("learnBar").style.display="none";
-        document.getElementById("progressPill").textContent = "0 / 0";
-        ui.currentCard = null;
+      if(!stillUnknown){
+        const delId = cards[idx].id;
+        ui.quizList = ui.quizList.filter(id => id !== delId);
+
+        if(ui.quizList.length === 0){
+          document.getElementById("learnHint").textContent = "Fertig ✅";
+          document.getElementById("flashCard").style.display="none";
+          document.getElementById("learnBar").style.display="none";
+          document.getElementById("progressPill").textContent = "0 / 0";
+          ui.currentCard = null;
+          return;
+        }
+        if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
+        showCurrent();
         return;
       }
-      if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
-      showCurrent();
-      return;
     }
 
     nextCard();
@@ -808,18 +1044,43 @@
 
   function setStars(n){
     if(!ui.currentCard) return;
-    ui.currentCard.stars = n;
-    ui.currentCard.updatedAt = Date.now();
+    const idx = cards.findIndex(c=>c.id===ui.currentCard.id);
+    if(idx<0) return;
+
+    cards[idx].stars = normalizeStars(n);
+    cards[idx].updatedAt = Date.now();
     persistCardsOnly();
 
     document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
-      btn.classList.toggle("active", Number(btn.dataset.stars)===n);
+      btn.classList.toggle("active", Number(btn.dataset.stars)===normalizeStars(n));
     });
+
+    // currentCard synchronisieren
+    ui.currentCard = ensureCardShape(cards[idx]);
 
     updateLearnStatusHint();
     updateStatusLine();
     renderKpis();
     renderCardList();
+  }
+
+  function editCurrentInLearn(){
+    if(!ui.currentCard) return;
+    const idx = cards.findIndex(c=>c.id===ui.currentCard.id);
+    if(idx<0) return;
+
+    const nf = prompt("Vorderseite bearbeiten:", cards[idx].front);
+    if(nf===null) return;
+    const nb = prompt("Rückseite bearbeiten:", cards[idx].back);
+    if(nb===null) return;
+
+    cards[idx].front = nf.trim();
+    cards[idx].back  = nb.trim();
+    cards[idx].updatedAt = Date.now();
+    saveCards();
+
+    // Karte/Anzeige sofort aktualisieren (auch wenn Reihenfolge/Filter nicht betroffen)
+    showCurrent();
   }
 
   function deleteCurrentFromLearn(){
@@ -875,7 +1136,8 @@
       sanitizeForTxt(c.front),
       sanitizeForTxt(c.back),
       String(normalizeStars(c.stars)),
-      normResult(c.lastResult)
+      normResult(c.lastResultFront),
+      normResult(c.lastResultBack)
     ].join(";"));
   }
   function makeFileName(base, ext){
@@ -885,12 +1147,12 @@
     return `${base}_${stamp}.${ext}`;
   }
   function exportTxtAll(){
-    const out = toAppTxtLines(cards).join("\n");
+    const out = toAppTxtLines(cards.map(ensureCardShape)).join("\n");
     document.getElementById("exportOut").value = out;
     downloadText(makeFileName("vokabeln_alle", "txt"), out);
   }
   function exportTxtFav(){
-    const fav = cards.filter(c => normalizeStars(c.stars) > 0);
+    const fav = cards.map(ensureCardShape).filter(c => normalizeStars(c.stars) > 0);
     const out = toAppTxtLines(fav).join("\n");
     document.getElementById("exportOut").value = out;
     downloadText(makeFileName("vokabeln_favoriten", "txt"), out);
@@ -899,7 +1161,7 @@
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
   }
   function backupDownload(){
-    const payload = { app:"vokabeltrainer", version:1, exportedAt:new Date().toISOString(), cards };
+    const payload = { app:"vokabeltrainer", version:2, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
     downloadJson(makeFileName("vokabeltrainer_backup","json"), payload);
   }
   function restoreFromFile(){
@@ -929,14 +1191,15 @@
           const back  = (c && typeof c.back==="string") ? c.back.trim() : "";
           if(!front || !back) continue;
 
-          cleaned.push({
+          cleaned.push(ensureCardShape({
             id: (c && typeof c.id==="string" && c.id) ? c.id : uid(),
             front, back,
             stars: normalizeStars(c.stars),
-            lastResult: normResult((c && c.lastResult) || "unknown"),
+            lastResultFront: normResult(c.lastResultFront || c.lastResult || "unknown"),
+            lastResultBack:  normResult(c.lastResultBack  || c.lastResult || "unknown"),
             createdAt: (c && Number.isFinite(c.createdAt)) ? c.createdAt : Date.now(),
             updatedAt: (c && Number.isFinite(c.updatedAt)) ? c.updatedAt : Date.now(),
-          });
+          }));
         }
 
         const seen = new Set();
@@ -987,8 +1250,12 @@
   document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> setNewStars(Number(btn.dataset.stars)));
   });
-  document.getElementById("btnSetUnknown").addEventListener("click", ()=> setNewResult("unknown"));
-  document.getElementById("btnSetKnown").addEventListener("click", ()=> setNewResult("known"));
+
+  document.getElementById("btnSetUnknownFront").addEventListener("click", ()=> setNewResultFront("unknown"));
+  document.getElementById("btnSetKnownFront").addEventListener("click", ()=> setNewResultFront("known"));
+  document.getElementById("btnSetUnknownBack").addEventListener("click", ()=> setNewResultBack("unknown"));
+  document.getElementById("btnSetKnownBack").addEventListener("click", ()=> setNewResultBack("known"));
+
   document.getElementById("btnBulkAdd").addEventListener("click", bulkAdd);
   document.getElementById("btnBulkClear").addEventListener("click", ()=>{
     document.getElementById("bulkEntry").value="";
@@ -999,14 +1266,13 @@
 
   document.getElementById("btnStart").addEventListener("click", startQuiz);
 
-  // Karte: nur Antwort ein/aus
   document.getElementById("flashCard").addEventListener("click", toggleReveal);
 
-  // Buttons: Markierung + Auto-Weiter
   document.getElementById("btnKnown").addEventListener("click", ()=>markKnown(true));
   document.getElementById("btnUnknown").addEventListener("click", ()=>markKnown(false));
   document.getElementById("btnNext").addEventListener("click", nextCard);
   document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
+  document.getElementById("btnEditLearn").addEventListener("click", editCurrentInLearn);
 
   document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> setStars(Number(btn.dataset.stars)));
@@ -1022,7 +1288,8 @@
   // Init
   document.getElementById("jsAlive").textContent = "JS: läuft ✅";
   setNewStars(0);
-  setNewResult("unknown");
+  setNewResultFront("unknown");
+  setNewResultBack("unknown");
   document.getElementById("filter").value = "all";
   refreshAll();
 })();
