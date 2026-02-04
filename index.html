@@ -1,10 +1,9 @@
-  
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (0–5 Sterne · Richtungs-Status · Auto-Fachwechsel · Backup/TXT)</title>
+  <title>Vokabeltrainer (0–5 Kreise · Richtungs-Status · Auto-Fachwechsel · Backup/TXT)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -42,7 +41,20 @@
     .pill{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:3px 8px;background:#fafafa}
     .stars{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .starBtn{padding:6px 10px;border-radius:999px}
-    .starBtn.active{background:#111;color:#fff;border-color:#111}
+
+    /* Kreise statt Sterne */
+    .dotBtn{
+      width:34px;height:34px;
+      border-radius:999px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:950;
+      line-height:1;
+    }
+    .dotBtn.active{background:#111;color:#fff;border-color:#111}
+
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
     .kpi .num{font-size:18px;font-weight:900}
@@ -53,7 +65,7 @@
     .ok{color:#0a7a0a;font-weight:800}
     .warn{color:#b00020;font-weight:800}
 
-    /* Stern-Fächer Anzeige */
+    /* Fach-Anzeige */
     .bins{display:flex;gap:6px;flex-wrap:wrap}
     .bin{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:4px 10px;background:#fafafa}
 
@@ -146,14 +158,14 @@
         </div>
 
         <div class="row">
-          <span class="pill">Sterne:</span>
+          <span class="pill">Fach:</span>
           <div class="stars" id="newStars">
-            <button class="starBtn active" data-stars="0" type="button">0</button>
-            <button class="starBtn" data-stars="1" type="button">⭐</button>
-            <button class="starBtn" data-stars="2" type="button">⭐⭐</button>
-            <button class="starBtn" data-stars="3" type="button">⭐⭐⭐</button>
-            <button class="starBtn" data-stars="4" type="button">⭐⭐⭐⭐</button>
-            <button class="starBtn" data-stars="5" type="button">⭐⭐⭐⭐⭐</button>
+            <button class="starBtn dotBtn active" data-stars="0" type="button">0</button>
+            <button class="starBtn dotBtn" data-stars="1" type="button">1</button>
+            <button class="starBtn dotBtn" data-stars="2" type="button">2</button>
+            <button class="starBtn dotBtn" data-stars="3" type="button">3</button>
+            <button class="starBtn dotBtn" data-stars="4" type="button">4</button>
+            <button class="starBtn dotBtn" data-stars="5" type="button">5</button>
           </div>
 
           <span class="pill">Startstatus:</span>
@@ -176,21 +188,21 @@
           <summary>Listen-Eingabe (mehrere Zeilen)</summary>
           <p class="muted small" style="margin:8px 0 10px 0">
             Pro Zeile: <span class="mono">Vorderseite;Rückseite</span>. Optional:
-            <span class="mono">;Sterne(0-5);StatusDE(known/unknown);StatusES(known/unknown)</span>
+            <span class="mono">;Fach(0-5);StatusDE(known/unknown);StatusES(known/unknown)</span>
           </p>
           <textarea id="bulkEntry"></textarea>
 
           <div class="row" style="align-items:flex-end">
             <div style="flex:1 1 260px;min-width:220px">
-              <label>Wenn Sterne/Status fehlen, nutze:</label>
+              <label>Wenn Fach/Status fehlen, nutze:</label>
               <div class="row" style="gap:8px">
                 <select id="bulkDefaultStars" style="width:auto">
-                  <option value="0">Sterne 0</option>
-                  <option value="1">Sterne 1</option>
-                  <option value="2">Sterne 2</option>
-                  <option value="3">Sterne 3</option>
-                  <option value="4">Sterne 4</option>
-                  <option value="5">Sterne 5</option>
+                  <option value="0">Fach 0</option>
+                  <option value="1">Fach 1</option>
+                  <option value="2">Fach 2</option>
+                  <option value="3">Fach 3</option>
+                  <option value="4">Fach 4</option>
+                  <option value="5">Fach 5</option>
                 </select>
                 <select id="bulkDefaultStatusFront" style="width:auto">
                   <option value="unknown">DE→ES: nicht gewusst</option>
@@ -224,7 +236,7 @@
       </div>
 
       <div class="divider"></div>
-      <div class="muted small" style="margin-bottom:6px">Fächer (Sterne):</div>
+      <div class="muted small" style="margin-bottom:6px">Fächer:</div>
       <div class="bins" id="starBins"></div>
 
       <div class="divider"></div>
@@ -242,11 +254,11 @@
             <option value="unknownBack">Nur ❌ ES→DE</option>
             <option value="unknownAny">Nur ❌ (irgendeine Richtung)</option>
             <option value="star0">Nur Fach 0</option>
-            <option value="star1">Nur ⭐ (1)</option>
-            <option value="star2">Nur ⭐⭐ (2)</option>
-            <option value="star3">Nur ⭐⭐⭐ (3)</option>
-            <option value="star4">Nur ⭐⭐⭐⭐ (4)</option>
-            <option value="star5">Nur ⭐⭐⭐⭐⭐ (5)</option>
+            <option value="star1">Nur Fach 1</option>
+            <option value="star2">Nur Fach 2</option>
+            <option value="star3">Nur Fach 3</option>
+            <option value="star4">Nur Fach 4</option>
+            <option value="star5">Nur Fach 5</option>
           </select>
         </div>
       </div>
@@ -277,11 +289,11 @@
               <option value="all">Alle Karten</option>
               <option value="unknown">Nicht gewusst (abhängig von Richtung)</option>
               <option value="star0">Fach 0</option>
-              <option value="star1">Favoriten ⭐ (1)</option>
-              <option value="star2">Favoriten ⭐⭐ (2)</option>
-              <option value="star3">Favoriten ⭐⭐⭐ (3)</option>
-              <option value="star4">Favoriten ⭐⭐⭐⭐ (4)</option>
-              <option value="star5">Favoriten ⭐⭐⭐⭐⭐ (5)</option>
+              <option value="star1">Fach 1</option>
+              <option value="star2">Fach 2</option>
+              <option value="star3">Fach 3</option>
+              <option value="star4">Fach 4</option>
+              <option value="star5">Fach 5</option>
             </select>
           </div>
 
@@ -325,12 +337,12 @@
 
           <div class="flashStars" id="flashStars">
             <span class="pill">Fach:</span>
-            <button class="starBtn tight" data-stars="0" type="button">0</button>
-            <button class="starBtn tight" data-stars="1" type="button">⭐</button>
-            <button class="starBtn tight" data-stars="2" type="button">⭐⭐</button>
-            <button class="starBtn tight" data-stars="3" type="button">⭐⭐⭐</button>
-            <button class="starBtn tight" data-stars="4" type="button">⭐⭐⭐⭐</button>
-            <button class="starBtn tight" data-stars="5" type="button">⭐⭐⭐⭐⭐</button>
+            <button class="starBtn dotBtn tight" data-stars="0" type="button">0</button>
+            <button class="starBtn dotBtn tight" data-stars="1" type="button">1</button>
+            <button class="starBtn dotBtn tight" data-stars="2" type="button">2</button>
+            <button class="starBtn dotBtn tight" data-stars="3" type="button">3</button>
+            <button class="starBtn dotBtn tight" data-stars="4" type="button">4</button>
+            <button class="starBtn dotBtn tight" data-stars="5" type="button">5</button>
             <span class="pill" id="statusHint">Status: —</span>
           </div>
         </div>
@@ -352,7 +364,7 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
       <p class="muted small" style="margin-top:0">
-        Backup-Datei enthält alle Daten (inkl. Sterne & Status pro Richtung).
+        Backup-Datei enthält alle Daten (inkl. Fach & Status pro Richtung).
       </p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
@@ -366,12 +378,12 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px">TXT Export</h3>
       <p class="muted small" style="margin-top:0">
-        Format: <span class="mono">Vorderseite;Rückseite;Sterne;StatusDE;StatusES</span>
+        Format: <span class="mono">Vorderseite;Rückseite;Fach;StatusDE;StatusES</span>
         (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
       </p>
       <div class="row">
         <button id="btnExportTxtAll" type="button">TXT exportieren (alle)</button>
-        <button id="btnExportTxtFav" type="button">TXT exportieren (nur Sterne &gt; 0)</button>
+        <button id="btnExportTxtFav" type="button">TXT exportieren (nur Fach &gt; 0)</button>
         <button id="btnExportJson" type="button">JSON anzeigen (im Feld)</button>
       </div>
       <textarea id="exportOut" readonly placeholder="Export erscheint hier…"></textarea>
@@ -447,7 +459,6 @@
     card.back  = (card.back||"").toString();
     card.stars = normalizeStars(card.stars);
 
-    // Alt: lastResult -> beide Richtungen übernehmen, falls Richtungsfelder fehlen
     const legacy = normResult(card.lastResult);
     if(!card.lastResultFront) card.lastResultFront = (card.lastResult ? legacy : "unknown");
     if(!card.lastResultBack)  card.lastResultBack  = (card.lastResult ? legacy : "unknown");
@@ -458,7 +469,6 @@
     card.createdAt = Number.isFinite(card.createdAt) ? card.createdAt : now;
     card.updatedAt = Number.isFinite(card.updatedAt) ? card.updatedAt : now;
 
-    // cleanup legacy field optional (nicht zwingend)
     return card;
   }
 
@@ -467,11 +477,8 @@
     s = s.replace(/^[„"'\(\[\{]+/g, "").trim();
 
     const articles = [
-      // Deutsch
       "der","die","das","ein","eine","einen","einem","einer","eines",
-      // Spanisch
       "el","la","los","las","un","una","unos","unas",
-      // Englisch
       "a","an","the"
     ];
 
@@ -539,7 +546,6 @@
     revealed: false
   };
 
-  // ----- UI helpers -----
   function setActiveTab(tab){
     ui.tab = tab;
     document.getElementById("tabManage").classList.toggle("active", tab==="manage");
@@ -565,7 +571,7 @@
     const unknownBack  = cards.filter(c=>c.lastResultBack==="unknown").length;
     const fav = cards.filter(c=>normalizeStars(c.stars)>0).length;
     document.getElementById("statusLine").textContent =
-      `Karten: ${total} · ❌ DE→ES: ${unknownFront} · ❌ ES→DE: ${unknownBack} · Sterne>0: ${fav}`;
+      `Karten: ${total} · ❌ DE→ES: ${unknownFront} · ❌ ES→DE: ${unknownBack} · Fach>0: ${fav}`;
     document.getElementById("storageInfo").textContent =
       `Speicher: ${PRIMARY_KEY} (gefunden aus: ${sourceKey})`;
   }
@@ -581,7 +587,7 @@
     for(let n=0;n<=5;n++){
       const el = document.createElement("span");
       el.className = "bin";
-      const label = n===0 ? "0" : "⭐".repeat(n);
+      const label = String(n);
       el.textContent = `${label}: ${bins[n]}`;
       starBins.appendChild(el);
     }
@@ -598,7 +604,6 @@
     if(list.length === 0){ emptyHint.style.display=""; return; }
     emptyHint.style.display="none";
 
-    // Alphabetisch, Artikel ignorieren (Vorderseite als Hauptschlüssel)
     list.sort((a,b)=>{
       const A0 = stripLeadingArticle(a.front);
       const B0 = stripLeadingArticle(b.front);
@@ -655,11 +660,10 @@
       [0,1,2,3,4,5].forEach(n=>{
         const b=document.createElement("button");
         b.type="button";
-        b.className="starBtn"+(normalizeStars(card.stars)===n?" active":"");
-        b.textContent = n===0 ? "0" : "⭐".repeat(n);
+        b.className="starBtn dotBtn"+(normalizeStars(card.stars)===n?" active":"");
+        b.textContent = String(n);
         b.addEventListener("click", ()=>{
           card.stars=n; card.updatedAt=Date.now();
-          // write back to real array
           const idx = cards.findIndex(x=>x.id===card.id);
           if(idx>=0) cards[idx] = ensureCardShape(Object.assign({}, cards[idx], card));
           saveCards();
@@ -667,7 +671,6 @@
         starWrap.appendChild(b);
       });
 
-      // Status getrennt pro Richtung
       const btnKnownFront = document.createElement("button");
       btnKnownFront.type="button";
       btnKnownFront.textContent="✅ DE→ES";
@@ -853,11 +856,11 @@
     if(m==="all") return "Alle";
     if(m==="unknown") return "Nicht gewusst";
     if(m==="star0") return "Fach 0";
-    if(m==="star1") return "⭐";
-    if(m==="star2") return "⭐⭐";
-    if(m==="star3") return "⭐⭐⭐";
-    if(m==="star4") return "⭐⭐⭐⭐";
-    if(m==="star5") return "⭐⭐⭐⭐⭐";
+    if(m==="star1") return "Fach 1";
+    if(m==="star2") return "Fach 2";
+    if(m==="star3") return "Fach 3";
+    if(m==="star4") return "Fach 4";
+    if(m==="star5") return "Fach 5";
     return "—";
   }
   function labelDir(d){
@@ -867,20 +870,13 @@
     return "—";
   }
 
-  function currentDirKey(){
-    // ui.currentSide ist die tatsächlich gezogene Richtung der aktuellen Karte
-    return (ui.currentSide==="front") ? "lastResultFront" : "lastResultBack";
-  }
-
   function passLearnMode(card){
     const m = ui.learnMode;
     if(m==="all") return true;
 
     if(m==="unknown"){
-      // abhängig von gewählter Richtung
       if(ui.direction==="front") return card.lastResultFront==="unknown";
       if(ui.direction==="back")  return card.lastResultBack==="unknown";
-      // mixed: wenn in irgendeiner Richtung unbekannt
       return (card.lastResultFront==="unknown" || card.lastResultBack==="unknown");
     }
 
@@ -901,7 +897,6 @@
       `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}`;
   }
 
-  // ----- Lernen -----
   function startQuiz(){
     ui.learnMode = document.getElementById("learnMode").value;
     ui.direction = document.getElementById("direction").value;
@@ -990,31 +985,26 @@
     showCurrent();
   }
 
-  // AUTO-Fachwechsel + Status pro Richtung + Auto-Weiter
   function markKnown(known){
     if(!ui.currentCard) return;
 
     const idx = cards.findIndex(c=>c.id===ui.currentCard.id);
     if(idx<0) return;
 
-    // Status je nach aktueller Richtung speichern
     const key = (ui.currentSide==="front") ? "lastResultFront" : "lastResultBack";
     cards[idx][key] = known ? "known" : "unknown";
 
-    // Fachwechsel: gewusst => 1 Fach runter, nicht gewusst => 1 Fach hoch
-    const curStars = normalizeStars(cards[idx].stars);
-    const newStars = known ? Math.max(0, curStars - 1) : Math.min(5, curStars + 1);
-    cards[idx].stars = newStars;
+    const cur = normalizeStars(cards[idx].stars);
+    const next = known ? Math.max(0, cur - 1) : Math.min(5, cur + 1);
+    cards[idx].stars = next;
 
     cards[idx].updatedAt = Date.now();
     persistCardsOnly();
 
-    // UI sofort aktualisieren
     updateStatusLine();
     renderKpis();
     renderCardList();
 
-    // Wenn Modus "Nicht gewusst" und Karte ist (im relevanten Sinne) nicht mehr passend, aus Runde entfernen
     if(ui.learnMode === "unknown"){
       let stillUnknown = true;
       if(ui.direction==="front") stillUnknown = (cards[idx].lastResultFront==="unknown");
@@ -1055,7 +1045,6 @@
       btn.classList.toggle("active", Number(btn.dataset.stars)===normalizeStars(n));
     });
 
-    // currentCard synchronisieren
     ui.currentCard = ensureCardShape(cards[idx]);
 
     updateLearnStatusHint();
@@ -1079,7 +1068,6 @@
     cards[idx].updatedAt = Date.now();
     saveCards();
 
-    // Karte/Anzeige sofort aktualisieren (auch wenn Reihenfolge/Filter nicht betroffen)
     showCurrent();
   }
 
@@ -1106,7 +1094,6 @@
     showCurrent();
   }
 
-  // ----- Export / Backup -----
   function downloadText(filename, text){
     const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -1238,7 +1225,6 @@
     renderCardList();
   }
 
-  // ----- Events -----
   document.getElementById("tabManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
   document.getElementById("tabData").addEventListener("click", ()=>setActiveTab("data"));
@@ -1285,7 +1271,6 @@
   document.getElementById("btnExportJson").addEventListener("click", exportJsonToField);
   document.getElementById("btnReset").addEventListener("click", resetAll);
 
-  // Init
   document.getElementById("jsAlive").textContent = "JS: läuft ✅";
   setNewStars(0);
   setNewResultFront("unknown");
