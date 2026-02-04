@@ -135,7 +135,11 @@
       <button class="tab" id="tabLearn">Abfrage</button>
       <button class="tab" id="tabData">Import/Export</button>
     </div>
+
+    <!-- Oben: Gesamt + Fächer -->
     <div class="muted small" id="statusLine"></div>
+    <div class="muted small" id="binsTop"></div>
+
     <div class="muted small" id="storageInfo"></div>
     <div class="muted small" id="jsAlive">JS: …</div>
   </div>
@@ -229,10 +233,10 @@
     <section class="card">
       <h2 style="margin:0 0 10px 0;font-size:16px">Übersicht</h2>
 
-      <div class="kpi">
+      <!-- DE→ES / ES→DE Zahlen entfallen -->
+      <div class="kpi" style="grid-template-columns:repeat(2,1fr)">
         <div class="box"><div class="muted">Karten</div><div class="num" id="kpiTotal">0</div></div>
-        <div class="box"><div class="muted">❌ DE→ES</div><div class="num" id="kpiUnknownFront">0</div></div>
-        <div class="box"><div class="muted">❌ ES→DE</div><div class="num" id="kpiUnknownBack">0</div></div>
+        <div class="box"><div class="muted">Fach &gt; 0</div><div class="num" id="kpiFav">0</div></div>
       </div>
 
       <div class="divider"></div>
@@ -332,7 +336,6 @@
             <button id="btnUnknown" type="button">❌ Nicht gewusst</button>
             <button id="btnEditLearn" type="button">✏️ Bearbeiten</button>
             <button id="btnDelete" class="danger" type="button">🗑️ Löschen</button>
-            <button id="btnNext" class="primary" type="button">Weiter ▶️</button>
           </div>
 
           <div class="flashStars" id="flashStars">
@@ -567,19 +570,17 @@
 
   function updateStatusLine(){
     const total = cards.length;
-    const unknownFront = cards.filter(c=>c.lastResultFront==="unknown").length;
-    const unknownBack  = cards.filter(c=>c.lastResultBack==="unknown").length;
-    const fav = cards.filter(c=>normalizeStars(c.stars)>0).length;
-    document.getElementById("statusLine").textContent =
-      `Karten: ${total} · ❌ DE→ES: ${unknownFront} · ❌ ES→DE: ${unknownBack} · Fach>0: ${fav}`;
+    document.getElementById("statusLine").textContent = `Karten: ${total}`;
+    const bins = countsByStars();
+    document.getElementById("binsTop").textContent =
+      `Fächer: 0=${bins[0]} · 1=${bins[1]} · 2=${bins[2]} · 3=${bins[3]} · 4=${bins[4]} · 5=${bins[5]}`;
     document.getElementById("storageInfo").textContent =
       `Speicher: ${PRIMARY_KEY} (gefunden aus: ${sourceKey})`;
   }
 
   function renderKpis(){
     document.getElementById("kpiTotal").textContent = cards.length;
-    document.getElementById("kpiUnknownFront").textContent = cards.filter(c=>c.lastResultFront==="unknown").length;
-    document.getElementById("kpiUnknownBack").textContent = cards.filter(c=>c.lastResultBack==="unknown").length;
+    document.getElementById("kpiFav").textContent = cards.filter(c=>normalizeStars(c.stars)>0).length;
 
     const bins = countsByStars();
     const starBins = document.getElementById("starBins");
@@ -587,8 +588,7 @@
     for(let n=0;n<=5;n++){
       const el = document.createElement("span");
       el.className = "bin";
-      const label = String(n);
-      el.textContent = `${label}: ${bins[n]}`;
+      el.textContent = `${n}: ${bins[n]}`;
       starBins.appendChild(el);
     }
   }
@@ -985,6 +985,7 @@
     showCurrent();
   }
 
+  // Auto-Weiter: nach Gewusst/Nicht gewusst sofort nächste Karte
   function markKnown(known){
     if(!ui.currentCard) return;
 
@@ -1251,12 +1252,10 @@
   document.getElementById("filter").addEventListener("change", e=>{ ui.filter=e.target.value; renderCardList(); });
 
   document.getElementById("btnStart").addEventListener("click", startQuiz);
-
   document.getElementById("flashCard").addEventListener("click", toggleReveal);
 
   document.getElementById("btnKnown").addEventListener("click", ()=>markKnown(true));
   document.getElementById("btnUnknown").addEventListener("click", ()=>markKnown(false));
-  document.getElementById("btnNext").addEventListener("click", nextCard);
   document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
   document.getElementById("btnEditLearn").addEventListener("click", editCurrentInLearn);
 
