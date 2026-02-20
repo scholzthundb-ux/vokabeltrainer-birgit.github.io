@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (0–7 · Player-Abfrage · Fach 6/7 separat)</title>
+  <title>Vokabeltrainer (0–7 Fächer · 6/7 Sonderlogik · Vollbild-Abfrage)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -40,16 +40,35 @@
     .back{color:#333;margin-top:4px}
     .pill{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:3px 8px;background:#fafafa}
     .stars{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .starBtn{padding:6px 10px;border-radius:999px}
 
+    /* Kreise statt Sterne */
     .dotBtn{
-      width:34px;height:34px;border-radius:999px;padding:0;
-      display:inline-flex;align-items:center;justify-content:center;
-      font-weight:950;line-height:1;border:1px solid #d8d9e6;background:#fff;
+      width:34px;height:34px;
+      border-radius:999px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:950;
+      line-height:1;
+      border:1px solid #d8d9e6;
+      background:#fff;
+      color:#111;
     }
     .dotBtn.active{background:#111;color:#fff;border-color:#111}
 
-    .dotBtn.red{border-color:#b00020;color:#b00020;background:#fff}
-    .dotBtn.red.active{background:#b00020;border-color:#b00020;color:#fff}
+    /* Fach 6 & 7: rot */
+    .dotBtn.special{
+      border-color:#b00020;
+      color:#b00020;
+      background:#fff;
+    }
+    .dotBtn.special.active{
+      background:#b00020;
+      color:#fff;
+      border-color:#b00020;
+    }
 
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
@@ -61,14 +80,15 @@
     .ok{color:#0a7a0a;font-weight:800}
     .warn{color:#b00020;font-weight:800}
 
+    /* Fach-Anzeige */
     .bins{display:flex;gap:6px;flex-wrap:wrap}
     .bin{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:4px 10px;background:#fafafa}
-    .bin.red{border-color:#b00020;color:#b00020;background:#fff5f5}
 
     /* Lernkarte */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
     .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .flashCard{
+      height: calc(100vh - 440px);
       min-height: 44vh;
       display:flex;flex-direction:column;justify-content:center;align-items:center;
       border:1px solid #e7e7ef;border-radius:18px;background:#fff;
@@ -78,17 +98,28 @@
       cursor:pointer;
       position:relative;
       z-index:1;
-      flex: 1 1 auto;
     }
-    .flashPrompt{font-size:30px;font-weight:950;line-height:1.15;max-width:880px;word-break:break-word}
+    @media (max-width:480px){
+      .flashCard{ height: calc(100vh - 500px); min-height: 40vh; }
+    }
+    .flashPrompt{
+      font-size:30px;font-weight:950;line-height:1.15;
+      max-width:880px;word-break:break-word;
+    }
     .flashAnswer{
-      margin-top:16px;font-size:22px;line-height:1.25;max-width:880px;word-break:break-word;
-      color:#222;display:none;background:#f3f4f8;border:1px dashed #d8d9e6;border-radius:14px;padding:14px;width:100%;box-sizing:border-box;
+      margin-top:16px;
+      font-size:22px;line-height:1.25;
+      max-width:880px;word-break:break-word;
+      color:#222;
+      display:none;
+      background:#f3f4f8;border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
+      width:100%;
+      box-sizing:border-box;
     }
     .flashAnswer.show{display:block}
     .tapHint{margin-top:10px;font-size:12px;color:#666}
 
-    /* Controls unten */
+    /* Controls */
     .learnBar{
       position:sticky;
       bottom:10px;
@@ -99,7 +130,9 @@
       border-radius:16px;
       padding:10px;
     }
-    .flashControls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
+    .flashControls{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center
+    }
     .flashControls button{min-width:140px}
     .flashStars{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
 
@@ -117,31 +150,39 @@
       z-index: 9999;
       overflow: hidden;
       background: #f3efe3; /* helles Beige */
-      padding: 12px;
-      padding-top: calc(12px + env(safe-area-inset-top));
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      padding: 0;
       box-sizing: border-box;
-    }
-    #viewLearn.player .card{background: transparent;border: none;padding: 0;}
-    #viewLearn.player .flashWrap{height: 100%;display:flex;flex-direction:column;}
-    #viewLearn.player .flashCard{
-      flex: 1 1 auto;
-      min-height: 0;
-      background: #f3efe3;
-      border-color: #e2dccb;
-    }
-    #viewLearn.player .flashAnswer{background:#efe7d4;border-color:#d8cfb7;}
-    #viewLearn.player .learnBar{
-      position: sticky;
-      bottom: calc(10px + env(safe-area-inset-bottom));
-      background: rgba(243,239,227,0.96);
-      border-color: #e2dccb;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Im Player: oben nur Zurück */
-    #viewLearn.player .flashTop .row{display:none;}          /* Pills weg */
-    #viewLearn.player #learnConfig{display:none !important;} /* Konfig weg */
-    #viewLearn.player #learnHint{display:none !important;}   /* Hint weg */
+    #viewLearn.player .card{
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #viewLearn.player .flashWrap{
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      gap: 0;
+    }
+
+    /* im Player: oben nur Zurück */
+    #viewLearn.player .flashTop{
+      padding: 12px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+    }
+    #viewLearn.player .flashTop .row{display:none;}
+    #viewLearn.player #learnConfig{display:none !important;}
+    #viewLearn.player #learnHint{display:none !important;}
 
     #viewLearn.player #btnBackToManage{
       border-color:#e2dccb;
@@ -150,6 +191,34 @@
       border-radius:14px;
       font-weight:900;
     }
+
+    /* Karte füllt den Rest */
+    #viewLearn.player .flashCard{
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+      margin: 0 12px;
+      background: #f3efe3;
+      border: 1px solid #e2dccb;
+      padding-bottom: calc(170px + env(safe-area-inset-bottom));
+    }
+
+    #viewLearn.player .flashAnswer{
+      background:#efe7d4;
+      border-color:#d8cfb7;
+    }
+
+    /* Buttons unten fest */
+    #viewLearn.player .learnBar{
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 10000;
+      background: rgba(243,239,227,0.96);
+      border-color: #e2dccb;
+    }
+
   </style>
 </head>
 
@@ -163,8 +232,10 @@
       <button class="tab" id="tabData">Import/Export</button>
     </div>
 
+    <!-- Oben: Gesamt + Fächer -->
     <div class="muted small" id="statusLine"></div>
     <div class="muted small" id="binsTop"></div>
+
     <div class="muted small" id="storageInfo"></div>
     <div class="muted small" id="jsAlive">JS: …</div>
   </div>
@@ -189,22 +260,22 @@
         <div class="row">
           <span class="pill">Fach:</span>
           <div class="stars" id="newStars">
-            <button class="dotBtn active" data-stars="0" type="button">0</button>
-            <button class="dotBtn" data-stars="1" type="button">1</button>
-            <button class="dotBtn" data-stars="2" type="button">2</button>
-            <button class="dotBtn" data-stars="3" type="button">3</button>
-            <button class="dotBtn" data-stars="4" type="button">4</button>
-            <button class="dotBtn" data-stars="5" type="button">5</button>
-            <button class="dotBtn red" data-stars="6" type="button">6</button>
-            <button class="dotBtn red" data-stars="7" type="button">7</button>
+            <button class="starBtn dotBtn active" data-stars="0" type="button">0</button>
+            <button class="starBtn dotBtn" data-stars="1" type="button">1</button>
+            <button class="starBtn dotBtn" data-stars="2" type="button">2</button>
+            <button class="starBtn dotBtn" data-stars="3" type="button">3</button>
+            <button class="starBtn dotBtn" data-stars="4" type="button">4</button>
+            <button class="starBtn dotBtn" data-stars="5" type="button">5</button>
+            <button class="starBtn dotBtn special" data-stars="6" type="button">6</button>
+            <button class="starBtn dotBtn special" data-stars="7" type="button">7</button>
           </div>
 
           <span class="pill">Startstatus:</span>
           <div class="row" style="gap:6px;flex-wrap:wrap">
-            <button id="btnSetUnknownFront" type="button" class="active">❌ DE→ES</button>
-            <button id="btnSetKnownFront" type="button">✅ DE→ES</button>
-            <button id="btnSetUnknownBack" type="button" class="active">❌ ES→DE</button>
-            <button id="btnSetKnownBack" type="button">✅ ES→DE</button>
+            <button id="btnSetUnknownFront" type="button" class="starBtn active">❌ DE→ES</button>
+            <button id="btnSetKnownFront" type="button" class="starBtn">✅ DE→ES</button>
+            <button id="btnSetUnknownBack" type="button" class="starBtn active">❌ ES→DE</button>
+            <button id="btnSetKnownBack" type="button" class="starBtn">✅ ES→DE</button>
           </div>
         </div>
 
@@ -234,8 +305,8 @@
                   <option value="3">Fach 3</option>
                   <option value="4">Fach 4</option>
                   <option value="5">Fach 5</option>
-                  <option value="6">Fach 6 (6↔7)</option>
-                  <option value="7">Fach 7 (6↔7)</option>
+                  <option value="6">Fach 6 (rot)</option>
+                  <option value="7">Fach 7 (rot)</option>
                 </select>
                 <select id="bulkDefaultStatusFront" style="width:auto">
                   <option value="unknown">DE→ES: nicht gewusst</option>
@@ -291,8 +362,8 @@
             <option value="star3">Nur Fach 3</option>
             <option value="star4">Nur Fach 4</option>
             <option value="star5">Nur Fach 5</option>
-            <option value="star6">Nur Fach 6 (6↔7)</option>
-            <option value="star7">Nur Fach 7 (6↔7)</option>
+            <option value="star6">Nur Fach 6 (rot)</option>
+            <option value="star7">Nur Fach 7 (rot)</option>
           </select>
         </div>
       </div>
@@ -307,7 +378,6 @@
   <div id="viewLearn" style="display:none">
     <section class="card">
       <div class="flashWrap">
-
         <div class="flashTop">
           <div class="row" style="gap:10px">
             <span class="pill" id="progressPill">0 / 0</span>
@@ -317,7 +387,7 @@
           <button id="btnBackToManage" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
         </div>
 
-        <!-- Konfiguration: sichtbar, solange NICHT im Player -->
+        <!-- Konfiguration (soll sichtbar sein, bis Start gedrückt wurde) -->
         <div class="row" id="learnConfig" style="align-items:flex-end">
           <div style="flex:1 1 260px;min-width:220px">
             <label for="learnMode">Lernmodus</label>
@@ -330,8 +400,8 @@
               <option value="star3">Fach 3</option>
               <option value="star4">Fach 4</option>
               <option value="star5">Fach 5</option>
-              <option value="star6">Fach 6 (6↔7)</option>
-              <option value="star7">Fach 7 (6↔7)</option>
+              <option value="star6">Fach 6 (rot)</option>
+              <option value="star7">Fach 7 (rot)</option>
             </select>
           </div>
 
@@ -356,7 +426,7 @@
           <button class="primary" id="btnStart" type="button">Start</button>
         </div>
 
-        <div class="divider"></div>
+        <div class="divider" id="learnDivider"></div>
 
         <div class="flashCard" id="flashCard" style="display:none" role="button" aria-label="Karte antippen für Antwort">
           <div class="flashPrompt" id="quizPrompt">—</div>
@@ -374,14 +444,14 @@
 
           <div class="flashStars" id="flashStars">
             <span class="pill">Fach:</span>
-            <button class="dotBtn" data-stars="0" type="button">0</button>
-            <button class="dotBtn" data-stars="1" type="button">1</button>
-            <button class="dotBtn" data-stars="2" type="button">2</button>
-            <button class="dotBtn" data-stars="3" type="button">3</button>
-            <button class="dotBtn" data-stars="4" type="button">4</button>
-            <button class="dotBtn" data-stars="5" type="button">5</button>
-            <button class="dotBtn red" data-stars="6" type="button">6</button>
-            <button class="dotBtn red" data-stars="7" type="button">7</button>
+            <button class="starBtn dotBtn tight" data-stars="0" type="button">0</button>
+            <button class="starBtn dotBtn tight" data-stars="1" type="button">1</button>
+            <button class="starBtn dotBtn tight" data-stars="2" type="button">2</button>
+            <button class="starBtn dotBtn tight" data-stars="3" type="button">3</button>
+            <button class="starBtn dotBtn tight" data-stars="4" type="button">4</button>
+            <button class="starBtn dotBtn tight" data-stars="5" type="button">5</button>
+            <button class="starBtn dotBtn tight special" data-stars="6" type="button">6</button>
+            <button class="starBtn dotBtn tight special" data-stars="7" type="button">7</button>
             <span class="pill" id="statusHint">Status: —</span>
           </div>
         </div>
@@ -402,7 +472,9 @@
       <div class="divider"></div>
 
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
-      <p class="muted small" style="margin-top:0">Backup-Datei enthält alle Daten.</p>
+      <p class="muted small" style="margin-top:0">
+        Backup-Datei enthält alle Daten (inkl. Fach & Status pro Richtung).
+      </p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
         <label class="pill" for="fileRestore">Backup wiederherstellen:</label>
@@ -416,6 +488,7 @@
       <h3 style="margin:0 0 8px 0;font-size:14px">TXT Export</h3>
       <p class="muted small" style="margin-top:0">
         Format: <span class="mono">Vorderseite;Rückseite;Fach;StatusDE;StatusES</span>
+        (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
       </p>
       <div class="row">
         <button id="btnExportTxtAll" type="button">TXT exportieren (alle)</button>
@@ -511,11 +584,19 @@
   function stripLeadingArticle(s){
     s = (s||"").toString().trim();
     s = s.replace(/^[„"'\(\[\{]+/g, "").trim();
-    const articles = ["der","die","das","ein","eine","einen","einem","einer","eines","el","la","los","las","un","una","unos","unas","a","an","the"];
+
+    const articles = [
+      "der","die","das","ein","eine","einen","einem","einer","eines",
+      "el","la","los","las","un","una","unos","unas",
+      "a","an","the"
+    ];
+
     const lower = s.toLowerCase();
     for(const art of articles){
       const prefix = art + " ";
-      if(lower.startsWith(prefix)) return s.slice(prefix.length).trim();
+      if(lower.startsWith(prefix)){
+        return s.slice(prefix.length).trim();
+      }
     }
     return s;
   }
@@ -574,19 +655,8 @@
     learnMode: "all",
     order: "random",
     revealed: false,
-    isLearning: false
+    playerActive: false
   };
-
-  function setPlayerActive(active){
-    ui.isLearning = active;
-
-    const learn = document.getElementById("viewLearn");
-    learn.classList.toggle("player", active);
-    document.body.classList.toggle("playerActive", active);
-
-    document.getElementById("learnConfig").style.display = active ? "none" : "";
-    document.getElementById("learnHint").style.display = active ? "none" : "";
-  }
 
   function setActiveTab(tab){
     ui.tab = tab;
@@ -596,24 +666,17 @@
     document.getElementById("viewManage").style.display = tab==="manage" ? "" : "none";
     document.getElementById("viewLearn").style.display = tab==="learn" ? "" : "none";
     document.getElementById("viewData").style.display = tab==="data" ? "" : "none";
-
-    // WICHTIG: Beim Öffnen des Lern-Tabs NICHT automatisch Player!
-    if(tab==="learn"){
-      setPlayerActive(false);
-      document.getElementById("flashCard").style.display="none";
-      document.getElementById("learnBar").style.display="none";
-      document.getElementById("learnHint").textContent = "Wähle Modus + Richtung und drücke „Start“.";
-      document.getElementById("progressPill").textContent = "0 / 0";
-      document.getElementById("modePill").textContent = "Modus: —";
-      document.getElementById("dirPill").textContent = "Richtung: —";
-    }
-
     updateStatusLine();
+
+    // WICHTIG: Beim Tab-Wechsel NICHT automatisch in den Player!
+    // Player nur nach Start.
   }
 
   function countsByStars(){
     const bins = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0};
-    for(const c of cards) bins[normalizeStars(c.stars)]++;
+    for(const c of cards){
+      bins[normalizeStars(c.stars)]++;
+    }
     return bins;
   }
 
@@ -636,11 +699,13 @@
     starBins.innerHTML = "";
     for(let n=0;n<=7;n++){
       const el = document.createElement("span");
-      el.className = "bin" + ((n===6||n===7) ? " red" : "");
+      el.className = "bin";
       el.textContent = `${n}: ${bins[n]}`;
       starBins.appendChild(el);
     }
   }
+
+  function isSpecialBin(n){ return n===6 || n===7; }
 
   function renderCardList(){
     const listEl = document.getElementById("cardList");
@@ -695,7 +760,7 @@
 
       const pillStars = document.createElement("span");
       pillStars.className="pill";
-      pillStars.textContent = `Fach: ${card.stars}` + ((card.stars===6||card.stars===7) ? " (6↔7)" : "");
+      pillStars.textContent = `Fach: ${card.stars}${isSpecialBin(card.stars) ? " (rot)" : ""}`;
 
       meta.appendChild(pillDE); meta.appendChild(pillES); meta.appendChild(pillStars);
       left.appendChild(front); left.appendChild(back); left.appendChild(meta);
@@ -706,11 +771,11 @@
 
       const starWrap = document.createElement("div");
       starWrap.className="stars";
-      [0,1,2,3,4,5,6,7].forEach(n=>{
+      for(let n=0;n<=7;n++){
         const b=document.createElement("button");
         b.type="button";
-        const isRed = (n===6 || n===7);
-        b.className="dotBtn"+(isRed?" red":"")+(normalizeStars(card.stars)===n?" active":"");
+        const special = isSpecialBin(n);
+        b.className="starBtn dotBtn"+(special?" special":"")+(normalizeStars(card.stars)===n?" active":"");
         b.textContent = String(n);
         b.addEventListener("click", ()=>{
           card.stars=n; card.updatedAt=Date.now();
@@ -719,6 +784,54 @@
           saveCards();
         });
         starWrap.appendChild(b);
+      }
+
+      const btnKnownFront = document.createElement("button");
+      btnKnownFront.type="button";
+      btnKnownFront.textContent="✅ DE→ES";
+      btnKnownFront.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultFront="known";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
+
+      const btnUnknownFront = document.createElement("button");
+      btnUnknownFront.type="button";
+      btnUnknownFront.textContent="❌ DE→ES";
+      btnUnknownFront.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultFront="unknown";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
+
+      const btnKnownBack = document.createElement("button");
+      btnKnownBack.type="button";
+      btnKnownBack.textContent="✅ ES→DE";
+      btnKnownBack.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultBack="known";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
+      });
+
+      const btnUnknownBack = document.createElement("button");
+      btnUnknownBack.type="button";
+      btnUnknownBack.textContent="❌ ES→DE";
+      btnUnknownBack.addEventListener("click", ()=>{
+        const idx = cards.findIndex(x=>x.id===card.id);
+        if(idx>=0){
+          cards[idx].lastResultBack="unknown";
+          cards[idx].updatedAt=Date.now();
+          saveCards();
+        }
       });
 
       const btnEdit = document.createElement("button");
@@ -729,6 +842,7 @@
         if(nf===null) return;
         const nb = prompt("Rückseite:", card.back);
         if(nb===null) return;
+
         const idx = cards.findIndex(x=>x.id===card.id);
         if(idx>=0){
           cards[idx].front = nf.trim();
@@ -750,6 +864,10 @@
       });
 
       right.appendChild(starWrap);
+      right.appendChild(btnKnownFront);
+      right.appendChild(btnUnknownFront);
+      right.appendChild(btnKnownBack);
+      right.appendChild(btnUnknownBack);
       right.appendChild(btnEdit);
       right.appendChild(btnDel);
 
@@ -762,7 +880,7 @@
 
   function setNewStars(n){
     ui.newStars = n;
-    document.querySelectorAll("#newStars .dotBtn").forEach(btn=>{
+    document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
       btn.classList.toggle("active", Number(btn.dataset.stars)===n);
     });
   }
@@ -858,8 +976,8 @@
     if(m==="star3") return "Fach 3";
     if(m==="star4") return "Fach 4";
     if(m==="star5") return "Fach 5";
-    if(m==="star6") return "Fach 6 (6↔7)";
-    if(m==="star7") return "Fach 7 (6↔7)";
+    if(m==="star6") return "Fach 6";
+    if(m==="star7") return "Fach 7";
     return "—";
   }
   function labelDir(d){
@@ -894,9 +1012,27 @@
     if(!ui.currentCard) return;
     const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
     const res = (ui.currentSide==="front") ? ui.currentCard.lastResultFront : ui.currentCard.lastResultBack;
-    const special = (ui.currentCard.stars===6 || ui.currentCard.stars===7) ? " · Sonderlogik 6↔7" : "";
+    const fach = normalizeStars(ui.currentCard.stars);
+
+    let extra = "";
+    if(fach===6 || fach===7){
+      extra = " · Sonderlogik 6↔7";
+    }
+
     document.getElementById("statusHint").textContent =
-      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}${special}`;
+      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${fach}${extra}`;
+  }
+
+  function enterPlayer(){
+    if(ui.playerActive) return;
+    ui.playerActive = true;
+    document.body.classList.add("playerActive");
+    document.getElementById("viewLearn").classList.add("player");
+  }
+  function exitPlayer(){
+    ui.playerActive = false;
+    document.body.classList.remove("playerActive");
+    document.getElementById("viewLearn").classList.remove("player");
   }
 
   function startQuiz(){
@@ -918,7 +1054,7 @@
       document.getElementById("progressPill").textContent = "0 / 0";
       document.getElementById("modePill").textContent = "Modus: —";
       document.getElementById("dirPill").textContent = "Richtung: —";
-      setPlayerActive(false);
+      exitPlayer();
       return;
     }
 
@@ -934,8 +1070,9 @@
     document.getElementById("modePill").textContent = "Modus: " + labelMode(ui.learnMode);
     document.getElementById("dirPill").textContent = "Richtung: " + labelDir(ui.direction);
 
-    // JETZT Player aktivieren
-    setPlayerActive(true);
+    // JETZT erst: Player an
+    enterPlayer();
+
     showCurrent();
   }
 
@@ -947,7 +1084,9 @@
     ui.currentCard = ensureCardShape(card);
 
     let side = ui.direction;
-    if(ui.direction === "mixed") side = Math.random() < 0.5 ? "front" : "back";
+    if(ui.direction === "mixed"){
+      side = Math.random() < 0.5 ? "front" : "back";
+    }
     ui.currentSide = side;
 
     const showFront = (side === "front");
@@ -961,7 +1100,7 @@
     ui.revealed = false;
     ansEl.classList.remove("show");
 
-    document.querySelectorAll("#flashStars .dotBtn").forEach(btn=>{
+    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
       const n = Number(btn.dataset.stars);
       btn.classList.toggle("active", n === normalizeStars(ui.currentCard.stars));
     });
@@ -983,16 +1122,13 @@
       document.getElementById("flashCard").style.display="none";
       document.getElementById("learnBar").style.display="none";
       document.getElementById("progressPill").textContent = `${ui.quizList.length} / ${ui.quizList.length}`;
-
-      // Nach Runde: Player aus (du landest wieder bei den Einstellungen)
-      setPlayerActive(false);
+      // Player bleibt an, bis du zurück gehst
       return;
     }
     showCurrent();
   }
 
-  // Fach 0–5 normal: bekannt => runter (weniger üben), unbekannt => hoch (mehr üben)
-  // Fach 6/7 separat: 6 <-> 7
+  // Auto-Weiter: nach Gewusst/Nicht gewusst sofort nächste Karte
   function markKnown(known){
     if(!ui.currentCard) return;
 
@@ -1004,14 +1140,19 @@
 
     const cur = normalizeStars(cards[idx].stars);
 
-    if(cur <= 5){
-      const next = known ? Math.max(0, cur - 1) : Math.min(5, cur + 1);
-      cards[idx].stars = next;
-    } else if(cur === 6){
-      if(!known) cards[idx].stars = 7; // 6 -> 7 bei nicht gewusst
-    } else if(cur === 7){
-      if(known) cards[idx].stars = 6;  // 7 -> 6 bei gewusst
+    // Sonderlogik 6/7:
+    // ✅ Gewusst -> Richtung 6
+    // ❌ Nicht gewusst -> Richtung 7
+    let next = cur;
+
+    if(cur === 6 || cur === 7){
+      next = known ? 6 : 7;
+    }else{
+      // Normal 0–5: gewusst -> runter, nicht gewusst -> rauf
+      next = known ? Math.max(0, cur - 1) : Math.min(5, cur + 1);
     }
+
+    cards[idx].stars = next;
 
     cards[idx].updatedAt = Date.now();
     persistCardsOnly();
@@ -1019,6 +1160,30 @@
     updateStatusLine();
     renderKpis();
     renderCardList();
+
+    if(ui.learnMode === "unknown"){
+      let stillUnknown = true;
+      if(ui.direction==="front") stillUnknown = (cards[idx].lastResultFront==="unknown");
+      else if(ui.direction==="back") stillUnknown = (cards[idx].lastResultBack==="unknown");
+      else stillUnknown = (cards[idx].lastResultFront==="unknown" || cards[idx].lastResultBack==="unknown");
+
+      if(!stillUnknown){
+        const delId = cards[idx].id;
+        ui.quizList = ui.quizList.filter(id => id !== delId);
+
+        if(ui.quizList.length === 0){
+          document.getElementById("learnHint").textContent = "Fertig ✅";
+          document.getElementById("flashCard").style.display="none";
+          document.getElementById("learnBar").style.display="none";
+          document.getElementById("progressPill").textContent = "0 / 0";
+          ui.currentCard = null;
+          return;
+        }
+        if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
+        showCurrent();
+        return;
+      }
+    }
 
     nextCard();
   }
@@ -1032,11 +1197,12 @@
     cards[idx].updatedAt = Date.now();
     persistCardsOnly();
 
-    document.querySelectorAll("#flashStars .dotBtn").forEach(btn=>{
+    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
       btn.classList.toggle("active", Number(btn.dataset.stars)===normalizeStars(n));
     });
 
     ui.currentCard = ensureCardShape(cards[idx]);
+
     updateLearnStatusHint();
     updateStatusLine();
     renderKpis();
@@ -1063,7 +1229,8 @@
 
   function deleteCurrentFromLearn(){
     if(!ui.currentCard) return;
-    if(!confirm("Diese Karte wirklich löschen?")) return;
+    const shown = `\n\nVorderseite:\n${ui.currentCard.front}\n\nRückseite:\n${ui.currentCard.back}\n`;
+    if(!confirm("Diese Karte wirklich löschen?" + shown)) return;
 
     const delId = ui.currentCard.id;
     cards = cards.filter(c => c.id !== delId);
@@ -1076,9 +1243,9 @@
       document.getElementById("learnBar").style.display="none";
       document.getElementById("progressPill").textContent = "0 / 0";
       ui.currentCard = null;
-      setPlayerActive(false);
       return;
     }
+
     if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
     showCurrent();
   }
@@ -1104,7 +1271,9 @@
     a.remove();
     URL.revokeObjectURL(url);
   }
-  function sanitizeForTxt(s){ return String(s ?? "").replace(/\r?\n/g, " ").trim(); }
+  function sanitizeForTxt(s){
+    return String(s ?? "").replace(/\r?\n/g, " ").trim();
+  }
   function toAppTxtLines(list){
     return list.map(c => [
       sanitizeForTxt(c.front),
@@ -1135,7 +1304,7 @@
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
   }
   function backupDownload(){
-    const payload = { app:"vokabeltrainer", version:4, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
+    const payload = { app:"vokabeltrainer", version:3, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
     downloadJson(makeFileName("vokabeltrainer_backup","json"), payload);
   }
   function restoreFromFile(){
@@ -1212,47 +1381,43 @@
     renderCardList();
   }
 
-  // UI Wireup
-  document.getElementById("tabManage").addEventListener("click", ()=>{
-    setPlayerActive(false);
-    setActiveTab("manage");
-  });
-  document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
-  document.getElementById("tabData").addEventListener("click", ()=>{
-    setPlayerActive(false);
-    setActiveTab("data");
-  });
+  // Tabs
+  document.getElementById("tabManage").addEventListener("click", ()=>{ exitPlayer(); setActiveTab("manage"); });
+  document.getElementById("tabLearn").addEventListener("click", ()=>{ exitPlayer(); setActiveTab("learn"); });
+  document.getElementById("tabData").addEventListener("click", ()=>{ exitPlayer(); setActiveTab("data"); });
 
-  // Zurück zur Eingabe: beendet ggf. Player + geht auf Eingabe
+  // Back buttons
   document.getElementById("btnBackToManage").addEventListener("click", ()=>{
-    setPlayerActive(false);
+    exitPlayer();
     setActiveTab("manage");
   });
-  document.getElementById("btnBackToManage2").addEventListener("click", ()=>{
-    setPlayerActive(false);
-    setActiveTab("manage");
-  });
+  document.getElementById("btnBackToManage2").addEventListener("click", ()=>{ exitPlayer(); setActiveTab("manage"); });
 
+  // Add
   document.getElementById("btnAdd").addEventListener("click", ()=>addCard(false));
   document.getElementById("btnAddStay").addEventListener("click", ()=>addCard(true));
-  document.querySelectorAll("#newStars .dotBtn").forEach(btn=>{
+  document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> setNewStars(Number(btn.dataset.stars)));
   });
 
+  // Startstatus
   document.getElementById("btnSetUnknownFront").addEventListener("click", ()=> setNewResultFront("unknown"));
   document.getElementById("btnSetKnownFront").addEventListener("click", ()=> setNewResultFront("known"));
   document.getElementById("btnSetUnknownBack").addEventListener("click", ()=> setNewResultBack("unknown"));
   document.getElementById("btnSetKnownBack").addEventListener("click", ()=> setNewResultBack("known"));
 
+  // Bulk
   document.getElementById("btnBulkAdd").addEventListener("click", bulkAdd);
   document.getElementById("btnBulkClear").addEventListener("click", ()=>{
     document.getElementById("bulkEntry").value="";
     document.getElementById("bulkReport").textContent="";
   });
 
+  // Search/filter
   document.getElementById("search").addEventListener("input", e=>{ ui.search=e.target.value; renderCardList(); });
   document.getElementById("filter").addEventListener("change", e=>{ ui.filter=e.target.value; renderCardList(); });
 
+  // Learn
   document.getElementById("btnStart").addEventListener("click", startQuiz);
   document.getElementById("flashCard").addEventListener("click", toggleReveal);
 
@@ -1261,10 +1426,11 @@
   document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
   document.getElementById("btnEditLearn").addEventListener("click", editCurrentInLearn);
 
-  document.querySelectorAll("#flashStars .dotBtn").forEach(btn=>{
+  document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> setStars(Number(btn.dataset.stars)));
   });
 
+  // Export/Import
   document.getElementById("btnBackupJson").addEventListener("click", backupDownload);
   document.getElementById("btnRestoreJson").addEventListener("click", restoreFromFile);
   document.getElementById("btnExportTxtAll").addEventListener("click", exportTxtAll);
@@ -1272,6 +1438,7 @@
   document.getElementById("btnExportJson").addEventListener("click", exportJsonToField);
   document.getElementById("btnReset").addEventListener("click", resetAll);
 
+  // Init
   document.getElementById("jsAlive").textContent = "JS: läuft ✅";
   setNewStars(0);
   setNewResultFront("unknown");
