@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (0–7 · Vollbild-Abfrage · Fach 6/7 separat · Backup/TXT)</title>
+  <title>Vokabeltrainer (0–7 · Vollbild-Abfrage · Fach 6/7 separat)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -40,34 +40,16 @@
     .back{color:#333;margin-top:4px}
     .pill{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:3px 8px;background:#fafafa}
     .stars{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-    .starBtn{padding:6px 10px;border-radius:999px}
 
-    /* Kreise statt Sterne */
     .dotBtn{
-      width:34px;height:34px;
-      border-radius:999px;
-      padding:0;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:950;
-      line-height:1;
-      border:1px solid #d8d9e6;
-      background:#fff;
+      width:34px;height:34px;border-radius:999px;padding:0;
+      display:inline-flex;align-items:center;justify-content:center;
+      font-weight:950;line-height:1;border:1px solid #d8d9e6;background:#fff;
     }
     .dotBtn.active{background:#111;color:#fff;border-color:#111}
 
-    /* Rot markierte Fächer 6/7 */
-    .dotBtn.red{
-      border-color:#b00020;
-      color:#b00020;
-      background:#fff;
-    }
-    .dotBtn.red.active{
-      background:#b00020;
-      border-color:#b00020;
-      color:#fff;
-    }
+    .dotBtn.red{border-color:#b00020;color:#b00020;background:#fff}
+    .dotBtn.red.active{background:#b00020;border-color:#b00020;color:#fff}
 
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
@@ -79,7 +61,6 @@
     .ok{color:#0a7a0a;font-weight:800}
     .warn{color:#b00020;font-weight:800}
 
-    /* Fach-Anzeige */
     .bins{display:flex;gap:6px;flex-wrap:wrap}
     .bin{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:4px 10px;background:#fafafa}
     .bin.red{border-color:#b00020;color:#b00020;background:#fff5f5}
@@ -99,24 +80,15 @@
       z-index:1;
       flex: 1 1 auto;
     }
-    .flashPrompt{
-      font-size:30px;font-weight:950;line-height:1.15;
-      max-width:880px;word-break:break-word;
-    }
+    .flashPrompt{font-size:30px;font-weight:950;line-height:1.15;max-width:880px;word-break:break-word}
     .flashAnswer{
-      margin-top:16px;
-      font-size:22px;line-height:1.25;
-      max-width:880px;word-break:break-word;
-      color:#222;
-      display:none;
-      background:#f3f4f8;border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
-      width:100%;
-      box-sizing:border-box;
+      margin-top:16px;font-size:22px;line-height:1.25;max-width:880px;word-break:break-word;
+      color:#222;display:none;background:#f3f4f8;border:1px dashed #d8d9e6;border-radius:14px;padding:14px;width:100%;box-sizing:border-box;
     }
     .flashAnswer.show{display:block}
     .tapHint{margin-top:10px;font-size:12px;color:#666}
 
-    /* Controls immer über der Karte, immer klickbar */
+    /* Controls unten */
     .learnBar{
       position:sticky;
       bottom:10px;
@@ -127,16 +99,14 @@
       border-radius:16px;
       padding:10px;
     }
-    .flashControls{
-      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center
-    }
+    .flashControls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
     .flashControls button{min-width:140px}
     .flashStars{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
 
     .fileRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input[type="file"]{max-width:100%}
 
-    /* ====== ECHTER Vollbild-Lernmodus (Fix gegen Scroll / 100vh-Bugs) ====== */
+    /* ====== Vollbild-Lernmodus ====== */
     body.learnFullscreen header{display:none;}
     body.learnFullscreen main.wrap{max-width:none; padding:0; margin:0;}
     body.learnFullscreen main{padding:0;}
@@ -152,37 +122,34 @@
       padding-bottom: calc(12px + env(safe-area-inset-bottom));
       box-sizing: border-box;
     }
-
-    #viewLearn.fullscreen .card{
-      background: transparent;
-      border: none;
-      padding: 0;
-    }
-
-    #viewLearn.fullscreen .flashWrap{
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-
+    #viewLearn.fullscreen .card{background: transparent;border: none;padding: 0;}
+    #viewLearn.fullscreen .flashWrap{height: 100%;display:flex;flex-direction:column;}
     #viewLearn.fullscreen .flashCard{
       flex: 1 1 auto;
       min-height: 0;
-      height: auto;
       background: #f3efe3;
       border-color: #e2dccb;
     }
-
-    #viewLearn.fullscreen .flashAnswer{
-      background: #efe7d4;
-      border-color: #d8cfb7;
-    }
-
+    #viewLearn.fullscreen .flashAnswer{background:#efe7d4;border-color:#d8cfb7;}
     #viewLearn.fullscreen .learnBar{
       position: sticky;
       bottom: calc(10px + env(safe-area-inset-bottom));
       background: rgba(243,239,227,0.96);
       border-color: #e2dccb;
+    }
+
+    /* >>> WICHTIG: Im Vollbild sollen die "oberen Felder" weg <<< */
+    #viewLearn.fullscreen .flashTop .row{display:none;}          /* Pills weg */
+    #viewLearn.fullscreen #learnConfig{display:none !important;} /* Dropdowns/Start weg */
+    #viewLearn.fullscreen #learnHint{display:none !important;}   /* Hinweis weg */
+
+    /* Zurück-Button im Vollbild prominent */
+    #viewLearn.fullscreen #btnBackToManage{
+      border-color:#e2dccb;
+      background: rgba(243,239,227,0.96);
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:900;
     }
   </style>
 </head>
@@ -199,7 +166,6 @@
 
     <div class="muted small" id="statusLine"></div>
     <div class="muted small" id="binsTop"></div>
-
     <div class="muted small" id="storageInfo"></div>
     <div class="muted small" id="jsAlive">JS: …</div>
   </div>
@@ -224,22 +190,22 @@
         <div class="row">
           <span class="pill">Fach:</span>
           <div class="stars" id="newStars">
-            <button class="starBtn dotBtn active" data-stars="0" type="button">0</button>
-            <button class="starBtn dotBtn" data-stars="1" type="button">1</button>
-            <button class="starBtn dotBtn" data-stars="2" type="button">2</button>
-            <button class="starBtn dotBtn" data-stars="3" type="button">3</button>
-            <button class="starBtn dotBtn" data-stars="4" type="button">4</button>
-            <button class="starBtn dotBtn" data-stars="5" type="button">5</button>
-            <button class="starBtn dotBtn red" data-stars="6" type="button">6</button>
-            <button class="starBtn dotBtn red" data-stars="7" type="button">7</button>
+            <button class="dotBtn active" data-stars="0" type="button">0</button>
+            <button class="dotBtn" data-stars="1" type="button">1</button>
+            <button class="dotBtn" data-stars="2" type="button">2</button>
+            <button class="dotBtn" data-stars="3" type="button">3</button>
+            <button class="dotBtn" data-stars="4" type="button">4</button>
+            <button class="dotBtn" data-stars="5" type="button">5</button>
+            <button class="dotBtn red" data-stars="6" type="button">6</button>
+            <button class="dotBtn red" data-stars="7" type="button">7</button>
           </div>
 
           <span class="pill">Startstatus:</span>
           <div class="row" style="gap:6px;flex-wrap:wrap">
-            <button id="btnSetUnknownFront" type="button" class="starBtn active">❌ DE→ES</button>
-            <button id="btnSetKnownFront" type="button" class="starBtn">✅ DE→ES</button>
-            <button id="btnSetUnknownBack" type="button" class="starBtn active">❌ ES→DE</button>
-            <button id="btnSetKnownBack" type="button" class="starBtn">✅ ES→DE</button>
+            <button id="btnSetUnknownFront" type="button" class="active">❌ DE→ES</button>
+            <button id="btnSetKnownFront" type="button">✅ DE→ES</button>
+            <button id="btnSetUnknownBack" type="button" class="active">❌ ES→DE</button>
+            <button id="btnSetKnownBack" type="button">✅ ES→DE</button>
           </div>
         </div>
 
@@ -342,6 +308,8 @@
   <div id="viewLearn" style="display:none">
     <section class="card">
       <div class="flashWrap">
+
+        <!-- Oben: nur Zurück-Button (im Vollbild). Im normalen Modus bleiben die Pills sichtbar. -->
         <div class="flashTop">
           <div class="row" style="gap:10px">
             <span class="pill" id="progressPill">0 / 0</span>
@@ -351,7 +319,8 @@
           <button id="btnBackToManage" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
         </div>
 
-        <div class="row" style="align-items:flex-end">
+        <!-- Lern-Konfiguration (wird im Vollbild versteckt) -->
+        <div class="row" id="learnConfig" style="align-items:flex-end">
           <div style="flex:1 1 260px;min-width:220px">
             <label for="learnMode">Lernmodus</label>
             <select id="learnMode">
@@ -407,14 +376,14 @@
 
           <div class="flashStars" id="flashStars">
             <span class="pill">Fach:</span>
-            <button class="starBtn dotBtn tight" data-stars="0" type="button">0</button>
-            <button class="starBtn dotBtn tight" data-stars="1" type="button">1</button>
-            <button class="starBtn dotBtn tight" data-stars="2" type="button">2</button>
-            <button class="starBtn dotBtn tight" data-stars="3" type="button">3</button>
-            <button class="starBtn dotBtn tight" data-stars="4" type="button">4</button>
-            <button class="starBtn dotBtn tight" data-stars="5" type="button">5</button>
-            <button class="starBtn dotBtn tight red" data-stars="6" type="button">6</button>
-            <button class="starBtn dotBtn tight red" data-stars="7" type="button">7</button>
+            <button class="dotBtn" data-stars="0" type="button">0</button>
+            <button class="dotBtn" data-stars="1" type="button">1</button>
+            <button class="dotBtn" data-stars="2" type="button">2</button>
+            <button class="dotBtn" data-stars="3" type="button">3</button>
+            <button class="dotBtn" data-stars="4" type="button">4</button>
+            <button class="dotBtn" data-stars="5" type="button">5</button>
+            <button class="dotBtn red" data-stars="6" type="button">6</button>
+            <button class="dotBtn red" data-stars="7" type="button">7</button>
             <span class="pill" id="statusHint">Status: —</span>
           </div>
         </div>
@@ -435,9 +404,7 @@
       <div class="divider"></div>
 
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
-      <p class="muted small" style="margin-top:0">
-        Backup-Datei enthält alle Daten (inkl. Fach & Status pro Richtung).
-      </p>
+      <p class="muted small" style="margin-top:0">Backup-Datei enthält alle Daten.</p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
         <label class="pill" for="fileRestore">Backup wiederherstellen:</label>
@@ -451,7 +418,6 @@
       <h3 style="margin:0 0 8px 0;font-size:14px">TXT Export</h3>
       <p class="muted small" style="margin-top:0">
         Format: <span class="mono">Vorderseite;Rückseite;Fach;StatusDE;StatusES</span>
-        (Status = <span class="mono">known</span>/<span class="mono">unknown</span>)
       </p>
       <div class="row">
         <button id="btnExportTxtAll" type="button">TXT exportieren (alle)</button>
@@ -547,19 +513,11 @@
   function stripLeadingArticle(s){
     s = (s||"").toString().trim();
     s = s.replace(/^[„"'\(\[\{]+/g, "").trim();
-
-    const articles = [
-      "der","die","das","ein","eine","einen","einem","einer","eines",
-      "el","la","los","las","un","una","unos","unas",
-      "a","an","the"
-    ];
-
+    const articles = ["der","die","das","ein","eine","einen","einem","einer","eines","el","la","los","las","un","una","unos","unas","a","an","the"];
     const lower = s.toLowerCase();
     for(const art of articles){
       const prefix = art + " ";
-      if(lower.startsWith(prefix)){
-        return s.slice(prefix.length).trim();
-      }
+      if(lower.startsWith(prefix)) return s.slice(prefix.length).trim();
     }
     return s;
   }
@@ -638,9 +596,7 @@
 
   function countsByStars(){
     const bins = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0};
-    for(const c of cards){
-      bins[normalizeStars(c.stars)]++;
-    }
+    for(const c of cards) bins[normalizeStars(c.stars)]++;
     return bins;
   }
 
@@ -737,7 +693,7 @@
         const b=document.createElement("button");
         b.type="button";
         const isRed = (n===6 || n===7);
-        b.className="starBtn dotBtn"+(isRed?" red":"")+(normalizeStars(card.stars)===n?" active":"");
+        b.className="dotBtn"+(isRed?" red":"")+(normalizeStars(card.stars)===n?" active":"");
         b.textContent = String(n);
         b.addEventListener("click", ()=>{
           card.stars=n; card.updatedAt=Date.now();
@@ -748,54 +704,6 @@
         starWrap.appendChild(b);
       });
 
-      const btnKnownFront = document.createElement("button");
-      btnKnownFront.type="button";
-      btnKnownFront.textContent="✅ DE→ES";
-      btnKnownFront.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultFront="known";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
-      const btnUnknownFront = document.createElement("button");
-      btnUnknownFront.type="button";
-      btnUnknownFront.textContent="❌ DE→ES";
-      btnUnknownFront.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultFront="unknown";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
-      const btnKnownBack = document.createElement("button");
-      btnKnownBack.type="button";
-      btnKnownBack.textContent="✅ ES→DE";
-      btnKnownBack.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultBack="known";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
-      const btnUnknownBack = document.createElement("button");
-      btnUnknownBack.type="button";
-      btnUnknownBack.textContent="❌ ES→DE";
-      btnUnknownBack.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultBack="unknown";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
       const btnEdit = document.createElement("button");
       btnEdit.type="button";
       btnEdit.textContent="✏️";
@@ -804,7 +712,6 @@
         if(nf===null) return;
         const nb = prompt("Rückseite:", card.back);
         if(nb===null) return;
-
         const idx = cards.findIndex(x=>x.id===card.id);
         if(idx>=0){
           cards[idx].front = nf.trim();
@@ -826,10 +733,6 @@
       });
 
       right.appendChild(starWrap);
-      right.appendChild(btnKnownFront);
-      right.appendChild(btnUnknownFront);
-      right.appendChild(btnKnownBack);
-      right.appendChild(btnUnknownBack);
       right.appendChild(btnEdit);
       right.appendChild(btnDel);
 
@@ -842,7 +745,7 @@
 
   function setNewStars(n){
     ui.newStars = n;
-    document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
+    document.querySelectorAll("#newStars .dotBtn").forEach(btn=>{
       btn.classList.toggle("active", Number(btn.dataset.stars)===n);
     });
   }
@@ -979,6 +882,7 @@
       `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}${special}`;
   }
 
+  // Start automatisch beim Öffnen des Lern-Tabs: Wenn schon mal gestartet wurde, bleibt es.
   function startQuiz(){
     ui.learnMode = document.getElementById("learnMode").value;
     ui.direction = document.getElementById("direction").value;
@@ -1024,9 +928,7 @@
     ui.currentCard = ensureCardShape(card);
 
     let side = ui.direction;
-    if(ui.direction === "mixed"){
-      side = Math.random() < 0.5 ? "front" : "back";
-    }
+    if(ui.direction === "mixed") side = Math.random() < 0.5 ? "front" : "back";
     ui.currentSide = side;
 
     const showFront = (side === "front");
@@ -1040,7 +942,7 @@
     ui.revealed = false;
     ansEl.classList.remove("show");
 
-    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+    document.querySelectorAll("#flashStars .dotBtn").forEach(btn=>{
       const n = Number(btn.dataset.stars);
       btn.classList.toggle("active", n === normalizeStars(ui.currentCard.stars));
     });
@@ -1067,8 +969,7 @@
     showCurrent();
   }
 
-  // Auto-Weiter: nach Gewusst/Nicht gewusst sofort nächste Karte
-  // NEU: Fach 6/7 rutschen NUR zwischen 6 und 7 (separat vom Rest)
+  // NEU: Fach 6/7 rutschen NUR zwischen 6 und 7 (separat)
   function markKnown(known){
     if(!ui.currentCard) return;
 
@@ -1081,15 +982,12 @@
     const cur = normalizeStars(cards[idx].stars);
 
     if(cur <= 5){
-      // Standard 0–5: bekannt → runter, unbekannt → hoch
       const next = known ? Math.max(0, cur - 1) : Math.min(5, cur + 1);
       cards[idx].stars = next;
     } else if(cur === 6){
-      // Fach 6: unbekannt -> 7, bekannt -> bleibt 6
-      if(!known) cards[idx].stars = 7;
+      if(!known) cards[idx].stars = 7;      // 6 -> 7 bei nicht gewusst
     } else if(cur === 7){
-      // Fach 7: bekannt -> 6, unbekannt -> bleibt 7
-      if(known) cards[idx].stars = 6;
+      if(known) cards[idx].stars = 6;       // 7 -> 6 bei gewusst
     }
 
     cards[idx].updatedAt = Date.now();
@@ -1098,30 +996,6 @@
     updateStatusLine();
     renderKpis();
     renderCardList();
-
-    if(ui.learnMode === "unknown"){
-      let stillUnknown = true;
-      if(ui.direction==="front") stillUnknown = (cards[idx].lastResultFront==="unknown");
-      else if(ui.direction==="back") stillUnknown = (cards[idx].lastResultBack==="unknown");
-      else stillUnknown = (cards[idx].lastResultFront==="unknown" || cards[idx].lastResultBack==="unknown");
-
-      if(!stillUnknown){
-        const delId = cards[idx].id;
-        ui.quizList = ui.quizList.filter(id => id !== delId);
-
-        if(ui.quizList.length === 0){
-          document.getElementById("learnHint").textContent = "Fertig ✅";
-          document.getElementById("flashCard").style.display="none";
-          document.getElementById("learnBar").style.display="none";
-          document.getElementById("progressPill").textContent = "0 / 0";
-          ui.currentCard = null;
-          return;
-        }
-        if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
-        showCurrent();
-        return;
-      }
-    }
 
     nextCard();
   }
@@ -1135,12 +1009,11 @@
     cards[idx].updatedAt = Date.now();
     persistCardsOnly();
 
-    document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+    document.querySelectorAll("#flashStars .dotBtn").forEach(btn=>{
       btn.classList.toggle("active", Number(btn.dataset.stars)===normalizeStars(n));
     });
 
     ui.currentCard = ensureCardShape(cards[idx]);
-
     updateLearnStatusHint();
     updateStatusLine();
     renderKpis();
@@ -1167,8 +1040,7 @@
 
   function deleteCurrentFromLearn(){
     if(!ui.currentCard) return;
-    const shown = `\n\nVorderseite:\n${ui.currentCard.front}\n\nRückseite:\n${ui.currentCard.back}\n`;
-    if(!confirm("Diese Karte wirklich löschen?" + shown)) return;
+    if(!confirm("Diese Karte wirklich löschen?")) return;
 
     const delId = ui.currentCard.id;
     cards = cards.filter(c => c.id !== delId);
@@ -1183,7 +1055,6 @@
       ui.currentCard = null;
       return;
     }
-
     if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
     showCurrent();
   }
@@ -1209,9 +1080,7 @@
     a.remove();
     URL.revokeObjectURL(url);
   }
-  function sanitizeForTxt(s){
-    return String(s ?? "").replace(/\r?\n/g, " ").trim();
-  }
+  function sanitizeForTxt(s){ return String(s ?? "").replace(/\r?\n/g, " ").trim(); }
   function toAppTxtLines(list){
     return list.map(c => [
       sanitizeForTxt(c.front),
@@ -1319,6 +1188,7 @@
     renderCardList();
   }
 
+  // UI Wireup
   document.getElementById("tabManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
   document.getElementById("tabData").addEventListener("click", ()=>setActiveTab("data"));
@@ -1327,7 +1197,7 @@
 
   document.getElementById("btnAdd").addEventListener("click", ()=>addCard(false));
   document.getElementById("btnAddStay").addEventListener("click", ()=>addCard(true));
-  document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
+  document.querySelectorAll("#newStars .dotBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> setNewStars(Number(btn.dataset.stars)));
   });
 
@@ -1341,6 +1211,7 @@
     document.getElementById("bulkEntry").value="";
     document.getElementById("bulkReport").textContent="";
   });
+
   document.getElementById("search").addEventListener("input", e=>{ ui.search=e.target.value; renderCardList(); });
   document.getElementById("filter").addEventListener("change", e=>{ ui.filter=e.target.value; renderCardList(); });
 
@@ -1352,7 +1223,7 @@
   document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
   document.getElementById("btnEditLearn").addEventListener("click", editCurrentInLearn);
 
-  document.querySelectorAll("#flashStars .starBtn").forEach(btn=>{
+  document.querySelectorAll("#flashStars .dotBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> setStars(Number(btn.dataset.stars)));
   });
 
