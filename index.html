@@ -1,10 +1,9 @@
-      
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (0–7 Fächer · Leitner+ · Problemkarten · Statistik · Google-Drive-Backup)</title>
+  <title>Vokabeltrainer (0–7 · Vollbild-Abfrage · Fach 6/7 separat · Backup/TXT)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -53,12 +52,22 @@
       justify-content:center;
       font-weight:950;
       line-height:1;
+      border:1px solid #d8d9e6;
+      background:#fff;
     }
     .dotBtn.active{background:#111;color:#fff;border-color:#111}
 
-    /* Sonderfächer 6/7 rot */
-    .dotBtn.special{border-color:#b00020;color:#b00020}
-    .dotBtn.special.active{background:#b00020;color:#fff;border-color:#b00020}
+    /* Rot markierte Fächer 6/7 */
+    .dotBtn.red{
+      border-color:#b00020;
+      color:#b00020;
+      background:#fff;
+    }
+    .dotBtn.red.active{
+      background:#b00020;
+      border-color:#b00020;
+      color:#fff;
+    }
 
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
@@ -73,26 +82,22 @@
     /* Fach-Anzeige */
     .bins{display:flex;gap:6px;flex-wrap:wrap}
     .bin{font-size:12px;border:1px solid #ddd;border-radius:999px;padding:4px 10px;background:#fafafa}
-    .bin.special{border-color:#b00020;color:#b00020;background:#fff5f6}
+    .bin.red{border-color:#b00020;color:#b00020;background:#fff5f5}
 
     /* Lernkarte */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
     .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .flashCard{
-      height: calc(100vh - 440px);
       min-height: 44vh;
       display:flex;flex-direction:column;justify-content:center;align-items:center;
-      border:1px solid #e7e7ef;border-radius:18px;
-      background:#f3eadb; /* hellbeige */
+      border:1px solid #e7e7ef;border-radius:18px;background:#fff;
       padding:18px;text-align:center;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
       cursor:pointer;
       position:relative;
       z-index:1;
-    }
-    @media (max-width:480px){
-      .flashCard{ height: calc(100vh - 500px); min-height: 40vh; }
+      flex: 1 1 auto;
     }
     .flashPrompt{
       font-size:30px;font-weight:950;line-height:1.15;
@@ -104,7 +109,7 @@
       max-width:880px;word-break:break-word;
       color:#222;
       display:none;
-      background:rgba(255,255,255,0.65);border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
+      background:#f3f4f8;border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
       width:100%;
       box-sizing:border-box;
     }
@@ -131,33 +136,55 @@
     .fileRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input[type="file"]{max-width:100%}
 
-    /* Vollbildmodus (nur Abfrage) */
-    .learnFullscreen #viewLearn{
-      position:fixed; inset:0;
-      background:#f6f7fb;
-      z-index:9999;
-      overflow:auto;
-      padding:14px 16px;
-    }
-    .learnFullscreen header{display:none}
-    .learnFullscreen main.wrap{max-width:980px}
-    .learnFullscreen .flashCard{
-      height: calc(100vh - 270px);
-      min-height: 55vh;
+    /* ====== ECHTER Vollbild-Lernmodus (Fix gegen Scroll / 100vh-Bugs) ====== */
+    body.learnFullscreen header{display:none;}
+    body.learnFullscreen main.wrap{max-width:none; padding:0; margin:0;}
+    body.learnFullscreen main{padding:0;}
+
+    #viewLearn.fullscreen{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      overflow: hidden;
+      background: #f3efe3; /* helles Beige */
+      padding: 12px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      box-sizing: border-box;
     }
 
-    /* Charts */
-    .chartWrap{display:grid;gap:12px}
-    @media (min-width:860px){ .chartWrap{grid-template-columns: 1fr 1fr} }
-    canvas{width:100%;height:240px;border:1px solid #eee;border-radius:12px;background:#fff}
-    .statGrid{display:grid;gap:10px}
-    @media (min-width:860px){ .statGrid{grid-template-columns: 1fr 1fr} }
-    .rangeRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    input[type="range"]{width:240px}
+    #viewLearn.fullscreen .card{
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    #viewLearn.fullscreen .flashWrap{
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #viewLearn.fullscreen .flashCard{
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+      background: #f3efe3;
+      border-color: #e2dccb;
+    }
+
+    #viewLearn.fullscreen .flashAnswer{
+      background: #efe7d4;
+      border-color: #d8cfb7;
+    }
+
+    #viewLearn.fullscreen .learnBar{
+      position: sticky;
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      background: rgba(243,239,227,0.96);
+      border-color: #e2dccb;
+    }
   </style>
-
-  <!-- Google Identity Services (OAuth Token) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -168,13 +195,12 @@
       <button class="tab active" id="tabManage">Eingabe & Verwaltung</button>
       <button class="tab" id="tabLearn">Abfrage</button>
       <button class="tab" id="tabData">Import/Export</button>
-      <button class="tab" id="tabStats">Statistik</button>
     </div>
 
     <div class="muted small" id="statusLine"></div>
     <div class="muted small" id="binsTop"></div>
+
     <div class="muted small" id="storageInfo"></div>
-    <div class="muted small" id="driveTopInfo"></div>
     <div class="muted small" id="jsAlive">JS: …</div>
   </div>
 </header>
@@ -204,8 +230,8 @@
             <button class="starBtn dotBtn" data-stars="3" type="button">3</button>
             <button class="starBtn dotBtn" data-stars="4" type="button">4</button>
             <button class="starBtn dotBtn" data-stars="5" type="button">5</button>
-            <button class="starBtn dotBtn special" data-stars="6" type="button">6</button>
-            <button class="starBtn dotBtn special" data-stars="7" type="button">7</button>
+            <button class="starBtn dotBtn red" data-stars="6" type="button">6</button>
+            <button class="starBtn dotBtn red" data-stars="7" type="button">7</button>
           </div>
 
           <span class="pill">Startstatus:</span>
@@ -243,8 +269,8 @@
                   <option value="3">Fach 3</option>
                   <option value="4">Fach 4</option>
                   <option value="5">Fach 5</option>
-                  <option value="6">Fach 6 (rot, manuell)</option>
-                  <option value="7">Fach 7 (rot, manuell)</option>
+                  <option value="6">Fach 6 (6↔7)</option>
+                  <option value="7">Fach 7 (6↔7)</option>
                 </select>
                 <select id="bulkDefaultStatusFront" style="width:auto">
                   <option value="unknown">DE→ES: nicht gewusst</option>
@@ -271,10 +297,9 @@
     <section class="card">
       <h2 style="margin:0 0 10px 0;font-size:16px">Übersicht</h2>
 
-      <div class="kpi" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi" style="grid-template-columns:repeat(2,1fr)">
         <div class="box"><div class="muted">Karten</div><div class="num" id="kpiTotal">0</div></div>
         <div class="box"><div class="muted">Fach &gt; 0</div><div class="num" id="kpiFav">0</div></div>
-        <div class="box"><div class="muted">Problemkarten</div><div class="num" id="kpiProblems">0</div></div>
       </div>
 
       <div class="divider"></div>
@@ -295,15 +320,14 @@
             <option value="unknownFront">Nur ❌ DE→ES</option>
             <option value="unknownBack">Nur ❌ ES→DE</option>
             <option value="unknownAny">Nur ❌ (irgendeine Richtung)</option>
-            <option value="problem">Nur Problemkarten</option>
             <option value="star0">Nur Fach 0</option>
             <option value="star1">Nur Fach 1</option>
             <option value="star2">Nur Fach 2</option>
             <option value="star3">Nur Fach 3</option>
             <option value="star4">Nur Fach 4</option>
             <option value="star5">Nur Fach 5</option>
-            <option value="star6">Nur Fach 6 (rot)</option>
-            <option value="star7">Nur Fach 7 (rot)</option>
+            <option value="star6">Nur Fach 6 (6↔7)</option>
+            <option value="star7">Nur Fach 7 (6↔7)</option>
           </select>
         </div>
       </div>
@@ -333,25 +357,15 @@
             <select id="learnMode">
               <option value="all">Alle Karten</option>
               <option value="unknown">Nicht gewusst (abhängig von Richtung)</option>
-              <option value="problem">Problemkarten (Statistik-basiert)</option>
               <option value="star0">Fach 0</option>
               <option value="star1">Fach 1</option>
               <option value="star2">Fach 2</option>
               <option value="star3">Fach 3</option>
               <option value="star4">Fach 4</option>
               <option value="star5">Fach 5</option>
-              <option value="star6">Fach 6 (rot, manuell)</option>
-              <option value="star7">Fach 7 (rot, manuell)</option>
+              <option value="star6">Fach 6 (6↔7)</option>
+              <option value="star7">Fach 7 (6↔7)</option>
             </select>
-          </div>
-
-          <div id="problemControls" style="display:none;flex:1 1 260px;min-width:220px">
-            <label>Problem-Schwelle (≤ Genauigkeit %)</label>
-            <div class="rangeRow">
-              <input id="problemThreshold" type="range" min="10" max="90" step="5" value="60" />
-              <span class="pill" id="problemThresholdLabel">60%</span>
-              <span class="muted small">min. 3 Versuche pro Richtung</span>
-            </div>
           </div>
 
           <div style="flex:0 0 auto">
@@ -399,12 +413,9 @@
             <button class="starBtn dotBtn tight" data-stars="3" type="button">3</button>
             <button class="starBtn dotBtn tight" data-stars="4" type="button">4</button>
             <button class="starBtn dotBtn tight" data-stars="5" type="button">5</button>
-            <button class="starBtn dotBtn tight special" data-stars="6" type="button">6</button>
-            <button class="starBtn dotBtn tight special" data-stars="7" type="button">7</button>
+            <button class="starBtn dotBtn tight red" data-stars="6" type="button">6</button>
+            <button class="starBtn dotBtn tight red" data-stars="7" type="button">7</button>
             <span class="pill" id="statusHint">Status: —</span>
-          </div>
-          <div class="muted small" id="specialHint" style="text-align:center;margin-top:6px;display:none">
-            Hinweis: In Fach 6/7 rutschen Karten <b>nicht automatisch</b>. Nur manuell per Fach-Klick.
           </div>
         </div>
 
@@ -425,7 +436,7 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
       <p class="muted small" style="margin-top:0">
-        Backup-Datei enthält alle Daten (inkl. Fach 0–7, Status pro Richtung, Statistik pro Karte).
+        Backup-Datei enthält alle Daten (inkl. Fach & Status pro Richtung).
       </p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
@@ -451,140 +462,9 @@
 
       <div class="divider"></div>
 
-      <h3 style="margin:0 0 8px 0;font-size:14px">Google Drive Auto-Backup</h3>
-      <p class="muted small" style="margin-top:0">
-        Speichert ein verstecktes Backup in deinem Google Drive <span class="mono">appDataFolder</span>.
-        <b>Wichtig:</b> Damit das klappt, musst du in der Google Cloud Console eine OAuth Client-ID + API-Key erstellen
-        und unten eintragen (weil Google sonst keine Tokens ausstellt).
-      </p>
-
-      <details>
-        <summary>Google-Drive Setup (einmalig)</summary>
-        <ol class="small" style="margin:10px 0 0 18px">
-          <li>Google Cloud Projekt erstellen, „Google Drive API“ aktivieren.</li>
-          <li>OAuth Client-ID für „Web application“ erstellen.</li>
-          <li><b>Authorized JavaScript origins</b>: die URL, unter der diese HTML läuft (z. B. <span class="mono">https://deinname.github.io</span>).</li>
-          <li>API-Key erstellen.</li>
-          <li>Unten eintragen.</li>
-        </ol>
-      </details>
-
-      <div class="row" style="margin-top:10px">
-        <div style="flex:1 1 320px;min-width:220px">
-          <label for="driveApiKey">Google API Key</label>
-          <input id="driveApiKey" type="text" placeholder="AIza..." />
-        </div>
-        <div style="flex:1 1 320px;min-width:220px">
-          <label for="driveClientId">Google OAuth Client ID</label>
-          <input id="driveClientId" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" />
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <button id="btnDriveSaveConfig" type="button">Konfiguration speichern</button>
-        <button id="btnDriveConnect" class="primary" type="button">Mit Google Drive verbinden</button>
-        <button id="btnDriveDisconnect" type="button">Trennen</button>
-        <button id="btnDriveBackupNow" type="button">Backup jetzt</button>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <label class="pill" style="display:flex;gap:8px;align-items:center">
-          <input id="driveAutoToggle" type="checkbox" />
-          Auto-Backup bei Änderungen (max. alle 2 Min.)
-        </label>
-        <span class="muted small" id="driveStatus">Drive: nicht verbunden</span>
-      </div>
-
-      <div class="divider"></div>
-
       <h3 style="margin:0 0 8px 0;font-size:14px;color:#b00020">Reset</h3>
       <p class="muted small" style="margin-top:0">Löscht alle Karten aus diesem Browser/Handy.</p>
       <button class="danger" id="btnReset" type="button">Alles löschen</button>
-    </section>
-  </div>
-
-  <!-- Stats -->
-  <div id="viewStats" style="display:none">
-    <section class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0;font-size:16px">Statistik & Fortschritt</h2>
-        <button id="btnBackToManage3" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="statGrid">
-        <div class="box" style="border:1px solid #eee;border-radius:12px;padding:10px;background:#fff">
-          <div class="muted">Gesamtversuche</div>
-          <div class="num" id="statTotalAttempts">0</div>
-          <div class="muted small" id="statTotalAttemptsSub"></div>
-        </div>
-
-        <div class="box" style="border:1px solid #eee;border-radius:12px;padding:10px;background:#fff">
-          <div class="muted">Gesamtgenauigkeit</div>
-          <div class="num" id="statAccuracy">0%</div>
-          <div class="muted small" id="statAccuracySub"></div>
-        </div>
-
-        <div class="box" style="border:1px solid #eee;border-radius:12px;padding:10px;background:#fff">
-          <div class="muted">Problemkarten</div>
-          <div class="num" id="statProblemCount">0</div>
-          <div class="muted small">Karten mit niedriger Trefferquote (min. 3 Versuche pro Richtung)</div>
-        </div>
-
-        <div class="box" style="border:1px solid #eee;border-radius:12px;padding:10px;background:#fff">
-          <div class="muted">Letztes Lernen</div>
-          <div class="num" id="statLastLearn">—</div>
-          <div class="muted small" id="statLastLearnSub"></div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="chartWrap">
-        <div>
-          <div class="row" style="justify-content:space-between;margin-bottom:6px">
-            <div class="muted small">Fächerverteilung (0–7)</div>
-            <button id="btnRedrawCharts1" type="button">Neu zeichnen</button>
-          </div>
-          <canvas id="chartBins" width="900" height="240"></canvas>
-        </div>
-        <div>
-          <div class="row" style="justify-content:space-between;margin-bottom:6px">
-            <div class="muted small">Genauigkeit über Zeit (letzte 100 Antworten)</div>
-            <button id="btnClearStats" class="danger" type="button">Statistik zurücksetzen</button>
-          </div>
-          <canvas id="chartAccuracy" width="900" height="240"></canvas>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <details>
-        <summary>Top Problemkarten anzeigen</summary>
-        <div class="muted small" style="margin-top:6px">
-          Sortiert nach schlechtester Trefferquote (min. 3 Versuche je Richtung, je nach gewählter Richtung).
-        </div>
-        <div class="row" style="margin-top:10px">
-          <label class="pill">Richtung:</label>
-          <select id="statProblemDir" style="width:auto">
-            <option value="front">DE→ES</option>
-            <option value="back">ES→DE</option>
-            <option value="mixed">Gemischt</option>
-          </select>
-          <label class="pill">Max. Genauigkeit:</label>
-          <select id="statProblemMaxAcc" style="width:auto">
-            <option value="40">≤ 40%</option>
-            <option value="50">≤ 50%</option>
-            <option value="60" selected>≤ 60%</option>
-            <option value="70">≤ 70%</option>
-            <option value="80">≤ 80%</option>
-          </select>
-          <button id="btnShowProblems" type="button">Anzeigen</button>
-        </div>
-        <div class="list" id="problemList" style="margin-top:10px"></div>
-      </details>
-
     </section>
   </div>
 </main>
@@ -595,9 +475,6 @@
     alert("Fehler im Script: " + (e && e.message ? e.message : "unbekannt"));
   });
 
-  /******************************************************************
-   * 1) Speicher-Keys
-   ******************************************************************/
   const PRIMARY_KEY = "vokabeltrainer_cards";
   const LEGACY_KEYS = [
     PRIMARY_KEY,
@@ -608,20 +485,8 @@
     "vokabeltrainer_cards_v1"
   ];
 
-  const STATS_KEY = "vokabeltrainer_stats_v1";
-  const DRIVE_CFG_KEY = "vokabeltrainer_drive_cfg_v1";
-  const DRIVE_AUTO_KEY = "vokabeltrainer_drive_auto_v1";
-  const DRIVE_FILE_NAME = "vokabeltrainer_autobackup.json";
-
-  /******************************************************************
-   * 2) Daten laden + Migration
-   ******************************************************************/
   let {cards, sourceKey} = loadWithMigration();
   cards = (cards||[]).map(ensureCardShape);
-
-  let stats = loadStats();
-  let driveCfg = loadDriveCfg();
-  let drive = createDriveState();
 
   function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
   function safeParse(raw){ try{ return JSON.parse(raw); }catch{ return null; } }
@@ -644,53 +509,12 @@
   function persistCardsOnly(){
     localStorage.setItem(PRIMARY_KEY, JSON.stringify(cards));
     sourceKey = PRIMARY_KEY;
-    scheduleAutoDriveBackup("cards");
   }
   function saveCards(){
     persistCardsOnly();
     refreshAll();
   }
 
-  /******************************************************************
-   * 3) Stats (pro Karte + global)
-   ******************************************************************/
-  function nowIso(){ return new Date().toISOString(); }
-  function loadStats(){
-    const raw = localStorage.getItem(STATS_KEY);
-    const parsed = safeParse(raw);
-    const base = {
-      version: 1,
-      createdAt: nowIso(),
-      lastLearnAt: null,
-      totalAttempts: 0,
-      totalCorrect: 0,
-      // Timeline: pro Antwort ein Punkt (max 100)
-      recent: [] // [{ts, correct}]
-    };
-    if(!parsed || typeof parsed !== "object") return base;
-    return Object.assign(base, parsed, {
-      recent: Array.isArray(parsed.recent) ? parsed.recent.slice(-200) : base.recent
-    });
-  }
-  function persistStats(){
-    try{
-      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-    }catch{}
-  }
-  function resetStats(){
-    stats = loadStats();
-    stats.createdAt = nowIso();
-    stats.lastLearnAt = null;
-    stats.totalAttempts = 0;
-    stats.totalCorrect = 0;
-    stats.recent = [];
-    persistStats();
-    refreshAll();
-  }
-
-  /******************************************************************
-   * 4) Card shape
-   ******************************************************************/
   function normalizeStars(n){
     n = Number(n);
     if(Number.isNaN(n)) return 0;
@@ -714,48 +538,12 @@
     card.lastResultFront = normResult(card.lastResultFront);
     card.lastResultBack  = normResult(card.lastResultBack);
 
-    // Statistik pro Richtung
-    card.attemptsFront = Number.isFinite(card.attemptsFront) ? card.attemptsFront : 0;
-    card.correctFront  = Number.isFinite(card.correctFront)  ? card.correctFront  : 0;
-    card.attemptsBack  = Number.isFinite(card.attemptsBack)  ? card.attemptsBack  : 0;
-    card.correctBack   = Number.isFinite(card.correctBack)   ? card.correctBack   : 0;
-
-    card.lastSeenAt = Number.isFinite(card.lastSeenAt) ? card.lastSeenAt : 0;
-
     card.createdAt = Number.isFinite(card.createdAt) ? card.createdAt : now;
     card.updatedAt = Number.isFinite(card.updatedAt) ? card.updatedAt : now;
 
     return card;
   }
 
-  function accuracyFor(card, side){
-    const a = side==="front" ? card.attemptsFront : card.attemptsBack;
-    const c = side==="front" ? card.correctFront  : card.correctBack;
-    if(!a) return null;
-    return Math.round((c/a)*100);
-  }
-
-  function isProblemCard(card, sideOrMixed, maxAcc, minAttempts=3){
-    const c = ensureCardShape(card);
-    const max = Number(maxAcc);
-    if(sideOrMixed==="mixed"){
-      const aF = c.attemptsFront, aB = c.attemptsBack;
-      const okF = aF>=minAttempts ? (c.correctFront/aF)*100 : null;
-      const okB = aB>=minAttempts ? (c.correctBack/aB)*100 : null;
-      if(okF===null && okB===null) return false;
-      const worst = Math.min(okF??100, okB??100);
-      return worst <= max;
-    }else{
-      const a = sideOrMixed==="front" ? c.attemptsFront : c.attemptsBack;
-      const ok = sideOrMixed==="front" ? (c.correctFront/a)*100 : (c.correctBack/a)*100;
-      if(a < minAttempts) return false;
-      return ok <= max;
-    }
-  }
-
-  /******************************************************************
-   * 5) Sort/Filter helpers
-   ******************************************************************/
   function stripLeadingArticle(s){
     s = (s||"").toString().trim();
     s = s.replace(/^[„"'\(\[\{]+/g, "").trim();
@@ -787,7 +575,6 @@
       case "unknownFront": return list.filter(c => c.lastResultFront === "unknown");
       case "unknownBack": return list.filter(c => c.lastResultBack === "unknown");
       case "unknownAny": return list.filter(c => c.lastResultFront === "unknown" || c.lastResultBack === "unknown");
-      case "problem": return list.filter(c => isProblemCard(c, "mixed", 60, 3));
       case "star0": return list.filter(c => normalizeStars(c.stars) === 0);
       case "star1": return list.filter(c => normalizeStars(c.stars) === 1);
       case "star2": return list.filter(c => normalizeStars(c.stars) === 2);
@@ -816,9 +603,6 @@
     return a;
   }
 
-  /******************************************************************
-   * 6) UI State
-   ******************************************************************/
   const ui = {
     tab: "manage",
     newStars: 0,
@@ -833,8 +617,7 @@
     currentSide: "front",
     learnMode: "all",
     order: "random",
-    revealed: false,
-    problemThreshold: 60
+    revealed: false
   };
 
   function setActiveTab(tab){
@@ -842,21 +625,15 @@
     document.getElementById("tabManage").classList.toggle("active", tab==="manage");
     document.getElementById("tabLearn").classList.toggle("active", tab==="learn");
     document.getElementById("tabData").classList.toggle("active", tab==="data");
-    document.getElementById("tabStats").classList.toggle("active", tab==="stats");
-
     document.getElementById("viewManage").style.display = tab==="manage" ? "" : "none";
     document.getElementById("viewLearn").style.display = tab==="learn" ? "" : "none";
     document.getElementById("viewData").style.display = tab==="data" ? "" : "none";
-    document.getElementById("viewStats").style.display = tab==="stats" ? "" : "none";
 
-    if(tab !== "learn"){
-      document.body.classList.remove("learnFullscreen");
-    }
+    const learn = document.getElementById("viewLearn");
+    learn.classList.toggle("fullscreen", tab==="learn");
+    document.body.classList.toggle("learnFullscreen", tab==="learn");
+
     updateStatusLine();
-    if(tab==="stats"){
-      renderStats();
-      drawCharts();
-    }
   }
 
   function countsByStars(){
@@ -875,25 +652,19 @@
       `Fächer: 0=${bins[0]} · 1=${bins[1]} · 2=${bins[2]} · 3=${bins[3]} · 4=${bins[4]} · 5=${bins[5]} · 6=${bins[6]} · 7=${bins[7]}`;
     document.getElementById("storageInfo").textContent =
       `Speicher: ${PRIMARY_KEY} (gefunden aus: ${sourceKey})`;
-    document.getElementById("driveTopInfo").textContent =
-      drive.connected ? `Drive: verbunden · Auto: ${drive.autoEnabled ? "an" : "aus"} · Datei: ${DRIVE_FILE_NAME}` : `Drive: nicht verbunden`;
   }
 
-  /******************************************************************
-   * 7) Manage render
-   ******************************************************************/
   function renderKpis(){
     document.getElementById("kpiTotal").textContent = cards.length;
     document.getElementById("kpiFav").textContent = cards.filter(c=>normalizeStars(c.stars)>0).length;
-    document.getElementById("kpiProblems").textContent = cards.filter(c=>isProblemCard(c,"mixed",60,3)).length;
 
     const bins = countsByStars();
     const starBins = document.getElementById("starBins");
     starBins.innerHTML = "";
     for(let n=0;n<=7;n++){
       const el = document.createElement("span");
-      el.className = "bin" + ((n===6||n===7) ? " special" : "");
-      el.textContent = `${n}: ${bins[n]}` + ((n===6||n===7) ? " (manuell)" : "");
+      el.className = "bin" + ((n===6||n===7) ? " red" : "");
+      el.textContent = `${n}: ${bins[n]}`;
       starBins.appendChild(el);
     }
   }
@@ -943,15 +714,15 @@
 
       const pillDE = document.createElement("span");
       pillDE.className="pill";
-      pillDE.textContent = `DE→ES: ${card.lastResultFront==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · ${fmtAcc(card,"front")}`;
+      pillDE.textContent = `DE→ES: ${card.lastResultFront==="known" ? "gewusst ✅" : "nicht gewusst ❌"}`;
 
       const pillES = document.createElement("span");
       pillES.className="pill";
-      pillES.textContent = `ES→DE: ${card.lastResultBack==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · ${fmtAcc(card,"back")}`;
+      pillES.textContent = `ES→DE: ${card.lastResultBack==="known" ? "gewusst ✅" : "nicht gewusst ❌"}`;
 
       const pillStars = document.createElement("span");
       pillStars.className="pill";
-      pillStars.textContent = `Fach: ${card.stars}` + ((card.stars===6||card.stars===7) ? " (manuell)" : "");
+      pillStars.textContent = `Fach: ${card.stars}` + ((card.stars===6||card.stars===7) ? " (6↔7)" : "");
 
       meta.appendChild(pillDE); meta.appendChild(pillES); meta.appendChild(pillStars);
       left.appendChild(front); left.appendChild(back); left.appendChild(meta);
@@ -965,8 +736,8 @@
       [0,1,2,3,4,5,6,7].forEach(n=>{
         const b=document.createElement("button");
         b.type="button";
-        const isSpecial = (n===6||n===7);
-        b.className="starBtn dotBtn"+(isSpecial?" special":"")+(normalizeStars(card.stars)===n?" active":"");
+        const isRed = (n===6 || n===7);
+        b.className="starBtn dotBtn"+(isRed?" red":"")+(normalizeStars(card.stars)===n?" active":"");
         b.textContent = String(n);
         b.addEventListener("click", ()=>{
           card.stars=n; card.updatedAt=Date.now();
@@ -1069,17 +840,6 @@
     });
   }
 
-  function fmtAcc(card, side){
-    const c = ensureCardShape(card);
-    const a = side==="front" ? c.attemptsFront : c.attemptsBack;
-    const acc = accuracyFor(c, side);
-    if(acc===null) return "—";
-    return `${acc}% (${a}×)`;
-  }
-
-  /******************************************************************
-   * 8) New-card defaults
-   ******************************************************************/
   function setNewStars(n){
     ui.newStars = n;
     document.querySelectorAll("#newStars .starBtn").forEach(btn=>{
@@ -1107,8 +867,6 @@
       stars: ui.newStars,
       lastResultFront: ui.newFront,
       lastResultBack: ui.newBack,
-      attemptsFront: 0, correctFront: 0,
-      attemptsBack: 0, correctBack: 0,
       createdAt: now, updatedAt: now
     }));
     saveCards();
@@ -1158,8 +916,6 @@
         stars,
         lastResultFront: stFront,
         lastResultBack: stBack,
-        attemptsFront: 0, correctFront: 0,
-        attemptsBack: 0, correctBack: 0,
         createdAt: now, updatedAt: now
       }));
       added++;
@@ -1173,21 +929,17 @@
     report.innerHTML = `<span class="ok">Fertig:</span> ${added} hinzugefügt` + (skipped ? ` · <span class="warn">${skipped} übersprungen</span>` : "");
   }
 
-  /******************************************************************
-   * 9) Learn helpers
-   ******************************************************************/
   function labelMode(m){
     if(m==="all") return "Alle";
     if(m==="unknown") return "Nicht gewusst";
-    if(m==="problem") return "Problemkarten";
     if(m==="star0") return "Fach 0";
     if(m==="star1") return "Fach 1";
     if(m==="star2") return "Fach 2";
     if(m==="star3") return "Fach 3";
     if(m==="star4") return "Fach 4";
     if(m==="star5") return "Fach 5";
-    if(m==="star6") return "Fach 6 (rot)";
-    if(m==="star7") return "Fach 7 (rot)";
+    if(m==="star6") return "Fach 6 (6↔7)";
+    if(m==="star7") return "Fach 7 (6↔7)";
     return "—";
   }
   function labelDir(d){
@@ -1198,29 +950,23 @@
   }
 
   function passLearnMode(card){
-    const c = ensureCardShape(card);
     const m = ui.learnMode;
     if(m==="all") return true;
 
     if(m==="unknown"){
-      if(ui.direction==="front") return c.lastResultFront==="unknown";
-      if(ui.direction==="back")  return c.lastResultBack==="unknown";
-      return (c.lastResultFront==="unknown" || c.lastResultBack==="unknown");
+      if(ui.direction==="front") return card.lastResultFront==="unknown";
+      if(ui.direction==="back")  return card.lastResultBack==="unknown";
+      return (card.lastResultFront==="unknown" || card.lastResultBack==="unknown");
     }
 
-    if(m==="problem"){
-      const maxAcc = ui.problemThreshold;
-      return isProblemCard(c, ui.direction==="mixed" ? "mixed" : ui.direction, maxAcc, 3);
-    }
-
-    if(m==="star0") return normalizeStars(c.stars)===0;
-    if(m==="star1") return normalizeStars(c.stars)===1;
-    if(m==="star2") return normalizeStars(c.stars)===2;
-    if(m==="star3") return normalizeStars(c.stars)===3;
-    if(m==="star4") return normalizeStars(c.stars)===4;
-    if(m==="star5") return normalizeStars(c.stars)===5;
-    if(m==="star6") return normalizeStars(c.stars)===6;
-    if(m==="star7") return normalizeStars(c.stars)===7;
+    if(m==="star0") return normalizeStars(card.stars)===0;
+    if(m==="star1") return normalizeStars(card.stars)===1;
+    if(m==="star2") return normalizeStars(card.stars)===2;
+    if(m==="star3") return normalizeStars(card.stars)===3;
+    if(m==="star4") return normalizeStars(card.stars)===4;
+    if(m==="star5") return normalizeStars(card.stars)===5;
+    if(m==="star6") return normalizeStars(card.stars)===6;
+    if(m==="star7") return normalizeStars(card.stars)===7;
     return true;
   }
 
@@ -1228,19 +974,15 @@
     if(!ui.currentCard) return;
     const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
     const res = (ui.currentSide==="front") ? ui.currentCard.lastResultFront : ui.currentCard.lastResultBack;
-    const acc = accuracyFor(ui.currentCard, ui.currentSide);
+    const special = (ui.currentCard.stars===6 || ui.currentCard.stars===7) ? " · Sonderlogik 6↔7" : "";
     document.getElementById("statusHint").textContent =
-      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars} · ${acc===null ? "—" : (acc+"%")}`;
-    document.getElementById("specialHint").style.display = (ui.currentCard.stars===6||ui.currentCard.stars===7) ? "" : "none";
+      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}${special}`;
   }
 
   function startQuiz(){
     ui.learnMode = document.getElementById("learnMode").value;
     ui.direction = document.getElementById("direction").value;
     ui.order = document.getElementById("order").value;
-
-    const th = Number(document.getElementById("problemThreshold").value);
-    ui.problemThreshold = Number.isFinite(th) ? th : 60;
 
     let pool = cards.map(ensureCardShape).filter(passLearnMode);
     pool = sortList(pool, ui.order);
@@ -1253,7 +995,6 @@
       hint.innerHTML = `<span class="warn">Keine Karten gefunden.</span>`;
       flashCard.style.display = "none";
       bar.style.display="none";
-      document.body.classList.remove("learnFullscreen");
       document.getElementById("progressPill").textContent = "0 / 0";
       document.getElementById("modePill").textContent = "Modus: —";
       document.getElementById("dirPill").textContent = "Richtung: —";
@@ -1271,8 +1012,6 @@
 
     document.getElementById("modePill").textContent = "Modus: " + labelMode(ui.learnMode);
     document.getElementById("dirPill").textContent = "Richtung: " + labelDir(ui.direction);
-
-    document.body.classList.add("learnFullscreen");
 
     showCurrent();
   }
@@ -1328,45 +1067,29 @@
     showCurrent();
   }
 
-  // Leitner+ Logik:
-  // - Fächer 0–5: automatisch (gewusst => -1, nicht gewusst => +1)
-  // - Fächer 6–7: NICHT automatisch bewegen (bleibt), nur manuell per Fach-Klick
+  // Auto-Weiter: nach Gewusst/Nicht gewusst sofort nächste Karte
+  // NEU: Fach 6/7 rutschen NUR zwischen 6 und 7 (separat vom Rest)
   function markKnown(known){
     if(!ui.currentCard) return;
 
     const idx = cards.findIndex(c=>c.id===ui.currentCard.id);
     if(idx<0) return;
 
-    const side = ui.currentSide; // "front" oder "back"
-    const key = (side==="front") ? "lastResultFront" : "lastResultBack";
+    const key = (ui.currentSide==="front") ? "lastResultFront" : "lastResultBack";
     cards[idx][key] = known ? "known" : "unknown";
 
-    // Stats pro Karte
-    if(side==="front"){
-      cards[idx].attemptsFront += 1;
-      if(known) cards[idx].correctFront += 1;
-    }else{
-      cards[idx].attemptsBack += 1;
-      if(known) cards[idx].correctBack += 1;
-    }
-    cards[idx].lastSeenAt = Date.now();
-
-    // Global stats
-    stats.totalAttempts += 1;
-    if(known) stats.totalCorrect += 1;
-    stats.lastLearnAt = nowIso();
-    stats.recent.push({ts: Date.now(), correct: known ? 1 : 0});
-    stats.recent = stats.recent.slice(-200);
-    persistStats();
-
-    // Fach-Logik
     const cur = normalizeStars(cards[idx].stars);
+
     if(cur <= 5){
+      // Standard 0–5: bekannt → runter, unbekannt → hoch
       const next = known ? Math.max(0, cur - 1) : Math.min(5, cur + 1);
       cards[idx].stars = next;
-    }else{
-      // Fach 6/7: bleibt
-      cards[idx].stars = cur;
+    } else if(cur === 6){
+      // Fach 6: unbekannt -> 7, bekannt -> bleibt 6
+      if(!known) cards[idx].stars = 7;
+    } else if(cur === 7){
+      // Fach 7: bekannt -> 6, unbekannt -> bleibt 7
+      if(known) cards[idx].stars = 6;
     }
 
     cards[idx].updatedAt = Date.now();
@@ -1465,9 +1188,6 @@
     showCurrent();
   }
 
-  /******************************************************************
-   * 10) Export/Import
-   ******************************************************************/
   function downloadText(filename, text){
     const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -1522,13 +1242,7 @@
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
   }
   function backupDownload(){
-    const payload = {
-      app:"vokabeltrainer",
-      version:3,
-      exportedAt:new Date().toISOString(),
-      stats,
-      cards: cards.map(ensureCardShape)
-    };
+    const payload = { app:"vokabeltrainer", version:4, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
     downloadJson(makeFileName("vokabeltrainer_backup","json"), payload);
   }
   function restoreFromFile(){
@@ -1544,11 +1258,8 @@
       try{
         const parsed = JSON.parse(String(reader.result || ""));
         let incoming = null;
-        let incomingStats = null;
-
         if(Array.isArray(parsed)) incoming = parsed;
         else if(parsed && Array.isArray(parsed.cards)) incoming = parsed.cards;
-        if(parsed && parsed.stats && typeof parsed.stats === "object") incomingStats = parsed.stats;
 
         if(!Array.isArray(incoming)){
           report.innerHTML = `<span class="warn">Ungültiges Backup-Format.</span>`;
@@ -1567,11 +1278,6 @@
             stars: normalizeStars(c.stars),
             lastResultFront: normResult(c.lastResultFront || c.lastResult || "unknown"),
             lastResultBack:  normResult(c.lastResultBack  || c.lastResult || "unknown"),
-            attemptsFront: Number.isFinite(c.attemptsFront) ? c.attemptsFront : 0,
-            correctFront:  Number.isFinite(c.correctFront)  ? c.correctFront  : 0,
-            attemptsBack:  Number.isFinite(c.attemptsBack)  ? c.attemptsBack  : 0,
-            correctBack:   Number.isFinite(c.correctBack)   ? c.correctBack   : 0,
-            lastSeenAt: Number.isFinite(c.lastSeenAt) ? c.lastSeenAt : 0,
             createdAt: (c && Number.isFinite(c.createdAt)) ? c.createdAt : Date.now(),
             updatedAt: (c && Number.isFinite(c.updatedAt)) ? c.updatedAt : Date.now(),
           }));
@@ -1586,13 +1292,6 @@
         }
 
         cards = unique;
-
-        if(incomingStats){
-          stats = Object.assign(loadStats(), incomingStats);
-          stats.recent = Array.isArray(stats.recent) ? stats.recent.slice(-200) : [];
-          persistStats();
-        }
-
         saveCards();
         report.innerHTML = `<span class="ok">Wiederhergestellt:</span> ${cards.length} Karten`;
       }catch(e){
@@ -1603,480 +1302,28 @@
     };
     reader.readAsText(file);
   }
-
   function resetAll(){
     if(confirm("Wirklich ALLES löschen? Das kann man nicht rückgängig machen.")){
       cards = [];
       for(const key of LEGACY_KEYS){
         try{ localStorage.removeItem(key); }catch{}
       }
-      localStorage.removeItem(STATS_KEY);
       refreshAll();
       alert("Alles gelöscht.");
     }
   }
 
-  /******************************************************************
-   * 11) Statistik UI + Charts
-   ******************************************************************/
-  function renderStats(){
-    const attempts = stats.totalAttempts || 0;
-    const correct = stats.totalCorrect || 0;
-    const acc = attempts ? Math.round((correct/attempts)*100) : 0;
-
-    document.getElementById("statTotalAttempts").textContent = String(attempts);
-    document.getElementById("statTotalAttemptsSub").textContent = `Richtig: ${correct} · Falsch: ${Math.max(0, attempts-correct)}`;
-
-    document.getElementById("statAccuracy").textContent = `${acc}%`;
-    document.getElementById("statAccuracySub").textContent = attempts ? `Seit: ${new Date(stats.createdAt).toLocaleString()}` : "Noch keine Lern-Daten.";
-
-    const pCount = cards.filter(c=>isProblemCard(c,"mixed",60,3)).length;
-    document.getElementById("statProblemCount").textContent = String(pCount);
-
-    const last = stats.lastLearnAt ? new Date(stats.lastLearnAt).toLocaleString() : "—";
-    document.getElementById("statLastLearn").textContent = last;
-    document.getElementById("statLastLearnSub").textContent =
-      stats.lastLearnAt ? `Letzte 10 Antworten: ${last10Acc()}%` : "Noch nicht gelernt.";
-  }
-
-  function last10Acc(){
-    const r = stats.recent.slice(-10);
-    if(!r.length) return 0;
-    const sum = r.reduce((a,x)=>a+(x.correct?1:0),0);
-    return Math.round((sum/r.length)*100);
-  }
-
-  function drawCharts(){
-    drawBinsChart();
-    drawAccuracyChart();
-  }
-
-  function drawBinsChart(){
-    const canvas = document.getElementById("chartBins");
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    const bins = countsByStars();
-    const values = [];
-    for(let i=0;i<=7;i++) values.push(bins[i]||0);
-
-    const max = Math.max(1, ...values);
-    const pad = 30;
-    const w = canvas.width;
-    const h = canvas.height;
-    const barW = (w - pad*2) / values.length;
-
-    // Axes
-    ctx.beginPath();
-    ctx.moveTo(pad, h-pad);
-    ctx.lineTo(w-pad, h-pad);
-    ctx.stroke();
-
-    for(let i=0;i<values.length;i++){
-      const v = values[i];
-      const bh = Math.round((v/max) * (h - pad*2));
-      const x = pad + i*barW + 8;
-      const y = (h-pad) - bh;
-
-      // Bar (6/7 gestrichelt als Hinweis)
-      ctx.beginPath();
-      ctx.rect(x, y, barW-16, bh);
-      ctx.stroke();
-
-      // Label
-      ctx.fillText(String(i), x + (barW-16)/2 - 3, h - 10);
-      ctx.fillText(String(v), x + 2, y - 6);
-      if(i===6 || i===7){
-        ctx.fillText("!", x + (barW-16)/2 - 2, y + 14);
-      }
-    }
-  }
-
-  function drawAccuracyChart(){
-    const canvas = document.getElementById("chartAccuracy");
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    const pad = 30;
-    const w = canvas.width;
-    const h = canvas.height;
-
-    const points = stats.recent.slice(-100);
-    if(points.length === 0){
-      ctx.fillText("Noch keine Lern-Daten.", pad, pad+10);
-      return;
-    }
-
-    // Convert to rolling accuracy
-    const win = 10;
-    const series = points.map((_, i)=>{
-      const start = Math.max(0, i - win + 1);
-      const seg = points.slice(start, i+1);
-      const sum = seg.reduce((a,x)=>a+(x.correct?1:0),0);
-      return Math.round((sum/seg.length)*100);
-    });
-
-    const maxY = 100;
-    const minY = 0;
-
-    // Axes
-    ctx.beginPath();
-    ctx.moveTo(pad, h-pad);
-    ctx.lineTo(w-pad, h-pad);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(pad, pad);
-    ctx.lineTo(pad, h-pad);
-    ctx.stroke();
-
-    // Y labels
-    ctx.fillText("100%", 2, pad+4);
-    ctx.fillText("0%", 10, h-pad);
-
-    // Line
-    const stepX = (w - pad*2) / Math.max(1, (series.length-1));
-    ctx.beginPath();
-    series.forEach((v,i)=>{
-      const x = pad + i*stepX;
-      const y = pad + (1 - ((v-minY)/(maxY-minY))) * (h - pad*2);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
-
-    // Last value
-    const last = series[series.length-1];
-    ctx.fillText(`Ø(10): ${last}%`, w-pad-90, pad+10);
-  }
-
-  function renderProblemList(dir, maxAcc){
-    const listEl = document.getElementById("problemList");
-    listEl.innerHTML = "";
-
-    const filtered = cards
-      .map(ensureCardShape)
-      .filter(c => isProblemCard(c, dir, Number(maxAcc), 3))
-      .map(c=>{
-        const acc = (dir==="mixed")
-          ? Math.min(
-              (c.attemptsFront>=3 ? Math.round((c.correctFront/c.attemptsFront)*100) : 100),
-              (c.attemptsBack>=3 ? Math.round((c.correctBack/c.attemptsBack)*100) : 100)
-            )
-          : (dir==="front" ? accuracyFor(c,"front") : accuracyFor(c,"back"));
-        return {c, acc: acc ?? 101};
-      })
-      .sort((a,b)=>a.acc-b.acc)
-      .slice(0, 30);
-
-    if(filtered.length===0){
-      listEl.innerHTML = `<div class="muted small">Keine Problemkarten nach dieser Definition.</div>`;
-      return;
-    }
-
-    filtered.forEach(({c, acc})=>{
-      const item = document.createElement("div");
-      item.className="item";
-      const title = document.createElement("div");
-      title.className="front";
-      title.textContent = c.front;
-
-      const sub = document.createElement("div");
-      sub.className="back";
-      sub.textContent = c.back;
-
-      const meta = document.createElement("div");
-      meta.className="row";
-      meta.style.marginTop="8px";
-
-      const aF = accuracyFor(c,"front");
-      const aB = accuracyFor(c,"back");
-
-      const p1 = document.createElement("span");
-      p1.className="pill";
-      p1.textContent = `DE→ES: ${aF===null?"—":aF+"%"} (${c.attemptsFront}×)`;
-
-      const p2 = document.createElement("span");
-      p2.className="pill";
-      p2.textContent = `ES→DE: ${aB===null?"—":aB+"%"} (${c.attemptsBack}×)`;
-
-      const p3 = document.createElement("span");
-      p3.className="pill";
-      p3.textContent = `Fach: ${c.stars}`;
-
-      meta.appendChild(p1); meta.appendChild(p2); meta.appendChild(p3);
-
-      const actions = document.createElement("div");
-      actions.className="row";
-      actions.style.marginTop="8px";
-
-      const btnLearn = document.createElement("button");
-      btnLearn.type="button";
-      btnLearn.textContent="➡️ In Abfrage öffnen";
-      btnLearn.addEventListener("click", ()=>{
-        setActiveTab("learn");
-        document.getElementById("learnMode").value = "problem";
-        document.getElementById("direction").value = (dir==="mixed" ? "mixed" : dir);
-        document.getElementById("problemThreshold").value = String(maxAcc);
-        document.getElementById("problemThresholdLabel").textContent = String(maxAcc) + "%";
-        updateProblemControlsVisibility();
-        startQuiz();
-      });
-
-      actions.appendChild(btnLearn);
-
-      item.appendChild(title);
-      item.appendChild(sub);
-      item.appendChild(meta);
-      item.appendChild(actions);
-      listEl.appendChild(item);
-    });
-  }
-
-  /******************************************************************
-   * 12) Google Drive Auto-Backup (Client-side OAuth, appDataFolder)
-   ******************************************************************/
-  function loadDriveCfg(){
-    const raw = localStorage.getItem(DRIVE_CFG_KEY);
-    const parsed = safeParse(raw);
-    return {
-      apiKey: (parsed && typeof parsed.apiKey==="string") ? parsed.apiKey : "",
-      clientId: (parsed && typeof parsed.clientId==="string") ? parsed.clientId : ""
-    };
-  }
-  function saveDriveCfg(){
-    localStorage.setItem(DRIVE_CFG_KEY, JSON.stringify(driveCfg));
-  }
-  function loadDriveAutoEnabled(){
-    return localStorage.getItem(DRIVE_AUTO_KEY) === "1";
-  }
-  function saveDriveAutoEnabled(v){
-    localStorage.setItem(DRIVE_AUTO_KEY, v ? "1" : "0");
-  }
-
-  function createDriveState(){
-    return {
-      tokenClient: null,
-      accessToken: null,
-      connected: false,
-      autoEnabled: loadDriveAutoEnabled(),
-      lastBackupAt: 0,
-      backupTimer: null,
-      pendingReason: null
-    };
-  }
-
-  function driveConfigured(){
-    return !!(driveCfg.apiKey && driveCfg.clientId);
-  }
-
-  function setDriveStatus(msg){
-    document.getElementById("driveStatus").textContent = msg;
-    updateStatusLine();
-  }
-
-  function initDriveTokenClient(){
-    if(!driveConfigured()){
-      setDriveStatus("Drive: Konfiguration fehlt (API Key + Client ID)");
-      return false;
-    }
-    if(!window.google || !google.accounts || !google.accounts.oauth2){
-      setDriveStatus("Drive: Google OAuth Library lädt noch… (bitte kurz warten)");
-      return false;
-    }
-
-    // Scope: appDataFolder reicht für verstecktes Backup
-    // https://developers.google.com/workspace/drive/api/guides/appdata
-    const scope = "https://www.googleapis.com/auth/drive.appdata";
-
-    drive.tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: driveCfg.clientId,
-      scope,
-      callback: (resp) => {
-        if(resp && resp.access_token){
-          drive.accessToken = resp.access_token;
-          drive.connected = true;
-          setDriveStatus("Drive: verbunden ✅");
-        }else{
-          drive.connected = false;
-          setDriveStatus("Drive: kein Token erhalten");
-        }
-      }
-    });
-    return true;
-  }
-
-  function connectDrive(){
-    if(!initDriveTokenClient()) return;
-    try{
-      drive.tokenClient.requestAccessToken({prompt: "consent"});
-    }catch(e){
-      setDriveStatus("Drive: Auth-Fehler: " + String(e));
-    }
-  }
-
-  function disconnectDrive(){
-    drive.accessToken = null;
-    drive.connected = false;
-    setDriveStatus("Drive: getrennt");
-  }
-
-  function multipartRelatedBody(metadataObj, jsonText){
-    const boundary = "----vokabeltrainer_" + Math.random().toString(16).slice(2);
-    const meta = JSON.stringify(metadataObj);
-    const delimiter = "--" + boundary;
-    const close = delimiter + "--";
-
-    const body =
-      delimiter + "\r\n" +
-      "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-      meta + "\r\n" +
-      delimiter + "\r\n" +
-      "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-      jsonText + "\r\n" +
-      close;
-
-    return {body, boundary};
-  }
-
-  async function driveListExistingFileId(){
-    // List in appDataFolder
-    const q = `name='${DRIVE_FILE_NAME.replace(/'/g,"\\'")}' and trashed=false`;
-    const url = "https://www.googleapis.com/drive/v3/files"
-      + "?spaces=appDataFolder"
-      + "&fields=files(id,name,modifiedTime)"
-      + "&q=" + encodeURIComponent(q);
-
-    const res = await fetch(url, {
-      headers: {
-        "Authorization": "Bearer " + drive.accessToken,
-        "X-Goog-Api-Key": driveCfg.apiKey
-      }
-    });
-    if(!res.ok) throw new Error("Drive list failed: " + res.status);
-    const data = await res.json();
-    const file = (data && data.files && data.files[0]) ? data.files[0] : null;
-    return file ? file.id : null;
-  }
-
-  async function driveUploadBackupNow(reason){
-    if(!driveConfigured()){
-      setDriveStatus("Drive: Konfiguration fehlt (API Key + Client ID)");
-      return;
-    }
-    if(!drive.connected || !drive.accessToken){
-      setDriveStatus("Drive: nicht verbunden (bitte verbinden)");
-      return;
-    }
-
-    const payload = {
-      app:"vokabeltrainer",
-      version:3,
-      exportedAt:new Date().toISOString(),
-      stats,
-      cards: cards.map(ensureCardShape)
-    };
-    const jsonText = JSON.stringify(payload, null, 2);
-
-    setDriveStatus("Drive: Backup läuft…");
-
-    try{
-      const existingId = await driveListExistingFileId();
-
-      if(existingId){
-        // Update via upload endpoint
-        const meta = { name: DRIVE_FILE_NAME };
-        const {body, boundary} = multipartRelatedBody(meta, jsonText);
-
-        const url = "https://www.googleapis.com/upload/drive/v3/files/" + encodeURIComponent(existingId)
-          + "?uploadType=multipart";
-
-        const res = await fetch(url, {
-          method: "PATCH",
-          headers: {
-            "Authorization": "Bearer " + drive.accessToken,
-            "X-Goog-Api-Key": driveCfg.apiKey,
-            "Content-Type": "multipart/related; boundary=" + boundary
-          },
-          body
-        });
-        if(!res.ok) throw new Error("Drive update failed: " + res.status);
-
-      }else{
-        // Create in appDataFolder
-        // parents: ["appDataFolder"]  (https://developers.google.com/workspace/drive/api/guides/appdata)
-        const meta = { name: DRIVE_FILE_NAME, parents: ["appDataFolder"] };
-        const {body, boundary} = multipartRelatedBody(meta, jsonText);
-
-        const url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
-
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + drive.accessToken,
-            "X-Goog-Api-Key": driveCfg.apiKey,
-            "Content-Type": "multipart/related; boundary=" + boundary
-          },
-          body
-        });
-        if(!res.ok) throw new Error("Drive create failed: " + res.status);
-      }
-
-      drive.lastBackupAt = Date.now();
-      setDriveStatus("Drive: Backup gespeichert ✅" + (reason ? ` (${reason})` : ""));
-      updateStatusLine();
-    }catch(e){
-      setDriveStatus("Drive: Backup fehlgeschlagen: " + String(e));
-    }
-  }
-
-  function scheduleAutoDriveBackup(reason){
-    drive.autoEnabled = loadDriveAutoEnabled();
-    if(!drive.autoEnabled) return;
-    if(!driveConfigured()) return;
-    if(!drive.connected) return;
-
-    const minIntervalMs = 2 * 60 * 1000; // max alle 2 Minuten
-    const now = Date.now();
-    const wait = Math.max(0, (drive.lastBackupAt + minIntervalMs) - now);
-
-    drive.pendingReason = reason || drive.pendingReason || "auto";
-
-    if(drive.backupTimer) return; // bereits geplant
-
-    drive.backupTimer = setTimeout(async ()=>{
-      drive.backupTimer = null;
-      const r = drive.pendingReason || "auto";
-      drive.pendingReason = null;
-      await driveUploadBackupNow(r);
-    }, wait);
-  }
-
-  /******************************************************************
-   * 13) Refresh all
-   ******************************************************************/
   function refreshAll(){
     updateStatusLine();
     renderKpis();
     renderCardList();
-    if(ui.tab==="stats"){
-      renderStats();
-      drawCharts();
-    }
   }
 
-  /******************************************************************
-   * 14) UI wiring
-   ******************************************************************/
   document.getElementById("tabManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
   document.getElementById("tabData").addEventListener("click", ()=>setActiveTab("data"));
-  document.getElementById("tabStats").addEventListener("click", ()=>setActiveTab("stats"));
-
-  document.getElementById("btnBackToManage").addEventListener("click", ()=>{
-    document.body.classList.remove("learnFullscreen");
-    setActiveTab("manage");
-  });
+  document.getElementById("btnBackToManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("btnBackToManage2").addEventListener("click", ()=>setActiveTab("manage"));
-  document.getElementById("btnBackToManage3").addEventListener("click", ()=>setActiveTab("manage"));
 
   document.getElementById("btnAdd").addEventListener("click", ()=>addCard(false));
   document.getElementById("btnAddStay").addEventListener("click", ()=>addCard(true));
@@ -2116,89 +1363,12 @@
   document.getElementById("btnExportJson").addEventListener("click", exportJsonToField);
   document.getElementById("btnReset").addEventListener("click", resetAll);
 
-  // Stats UI
-  document.getElementById("btnRedrawCharts1").addEventListener("click", drawCharts);
-  document.getElementById("btnClearStats").addEventListener("click", ()=>{
-    if(confirm("Statistik wirklich zurücksetzen? (Karten bleiben erhalten)")){
-      resetStats();
-    }
-  });
-  document.getElementById("btnShowProblems").addEventListener("click", ()=>{
-    const dir = document.getElementById("statProblemDir").value;
-    const maxAcc = document.getElementById("statProblemMaxAcc").value;
-    renderProblemList(dir, maxAcc);
-  });
-
-  // Problem controls visibility
-  function updateProblemControlsVisibility(){
-    const m = document.getElementById("learnMode").value;
-    document.getElementById("problemControls").style.display = (m==="problem") ? "" : "none";
-  }
-  document.getElementById("learnMode").addEventListener("change", ()=>{
-    updateProblemControlsVisibility();
-  });
-  document.getElementById("problemThreshold").addEventListener("input", (e)=>{
-    const v = Number(e.target.value);
-    document.getElementById("problemThresholdLabel").textContent = v + "%";
-  });
-
-  // Google Drive UI wiring
-  document.getElementById("driveApiKey").value = driveCfg.apiKey || "";
-  document.getElementById("driveClientId").value = driveCfg.clientId || "";
-  document.getElementById("driveAutoToggle").checked = loadDriveAutoEnabled();
-
-  document.getElementById("btnDriveSaveConfig").addEventListener("click", ()=>{
-    driveCfg.apiKey = document.getElementById("driveApiKey").value.trim();
-    driveCfg.clientId = document.getElementById("driveClientId").value.trim();
-    saveDriveCfg();
-    setDriveStatus(driveConfigured() ? "Drive: Konfiguration gespeichert" : "Drive: Konfiguration fehlt");
-  });
-
-  document.getElementById("btnDriveConnect").addEventListener("click", ()=>{
-    driveCfg.apiKey = document.getElementById("driveApiKey").value.trim();
-    driveCfg.clientId = document.getElementById("driveClientId").value.trim();
-    saveDriveCfg();
-    connectDrive();
-  });
-
-  document.getElementById("btnDriveDisconnect").addEventListener("click", disconnectDrive);
-
-  document.getElementById("btnDriveBackupNow").addEventListener("click", ()=>{
-    driveUploadBackupNow("manuell");
-  });
-
-  document.getElementById("driveAutoToggle").addEventListener("change", (e)=>{
-    const enabled = !!e.target.checked;
-    saveDriveAutoEnabled(enabled);
-    drive.autoEnabled = enabled;
-    setDriveStatus(drive.connected
-      ? `Drive: verbunden · Auto: ${enabled ? "an" : "aus"}`
-      : `Drive: nicht verbunden · Auto: ${enabled ? "an" : "aus"}`
-    );
-    if(enabled){
-      scheduleAutoDriveBackup("auto-on");
-    }
-  });
-
-  /******************************************************************
-   * 15) Init
-   ******************************************************************/
   document.getElementById("jsAlive").textContent = "JS: läuft ✅";
   setNewStars(0);
   setNewResultFront("unknown");
   setNewResultBack("unknown");
   document.getElementById("filter").value = "all";
-
-  // Initial problem UI
-  updateProblemControlsVisibility();
-  document.getElementById("problemThresholdLabel").textContent =
-    document.getElementById("problemThreshold").value + "%";
-
-  // Drive initial status
-  setDriveStatus(driveConfigured() ? "Drive: bereit (noch nicht verbunden)" : "Drive: Konfiguration fehlt");
-
   refreshAll();
-
 })();
 </script>
 </body>
