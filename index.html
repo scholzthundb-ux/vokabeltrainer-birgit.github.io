@@ -1,10 +1,9 @@
-
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (1–20 Fächer · Sonderlogik 18–20 · Vollbild-Abfrage)</title>
+  <title>Vokabeltrainer (1–20 Fächer · Problemkarten · Statistik · Vollbild-Abfrage)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -39,7 +38,7 @@
     .itemTop{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
     .itemLeft{min-width:0}
 
-    /* Schriftgröße im Verzeichnis verkleinert (wegen 20 Fächern) */
+    /* Schriftgröße im Verzeichnis verkleinert */
     .front{font-weight:900;font-size:14px;line-height:1.15}
     .back{color:#333;margin-top:4px;font-size:13px;line-height:1.2}
 
@@ -64,11 +63,11 @@
     .dotBtn.special{border-color:#b00020;color:#b00020}
     .dotBtn.special.active{background:#b00020;color:#fff;border-color:#b00020}
 
-    /* Kleinere Kreise in der Abfrage (wie gewünscht) */
-    .dotBtn.smallDot{
-      width:28px;height:28px;
-      font-size:12px;
-    }
+    /* Kleinere Kreise IN der Abfrage */
+    .dotBtn.smallDot{width:28px;height:28px;font-size:12px}
+
+    /* Kleinere Kreise IM Verzeichnis (dein Wunsch) */
+    .dotBtn.smallListDot{width:26px;height:26px;font-size:12px}
 
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
@@ -86,8 +85,6 @@
 
     /* Lernbereich */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
-
-    /* Setup-Bereich (Modus/Start) */
     #learnSetup{display:block}
     #learnQuizOnly{display:none}
 
@@ -98,7 +95,7 @@
       flex-direction:column;
       gap:10px;
     }
-    /* Headerzeile im Quiz */
+
     .quizTopBar{
       display:flex;
       align-items:center;
@@ -141,7 +138,7 @@
     .flashAnswer.show{display:block}
     .tapHint{margin-top:10px;font-size:12px;color:#666}
 
-    /* Controls unten, nur am Rand sichtbar */
+    /* Controls unten */
     .learnBar{
       flex:0 0 auto;
       position:sticky;
@@ -162,11 +159,19 @@
     .fileRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input[type="file"]{max-width:100%}
 
-    /* Vollbild: Header ausblenden, damit wirklich nur Karte + Leiste zu sehen ist */
+    /* Vollbild: Header ausblenden */
     body.quizFullscreen header{display:none}
     body.quizFullscreen main.wrap{max-width:none;padding:12px 12px}
     body.quizFullscreen #viewLearn .card{border:none;background:transparent;padding:0}
     body.quizFullscreen #learnQuizOnly{height: calc(100vh - 24px);}
+
+    /* Statistik */
+    .statsGrid{display:grid;gap:10px}
+    @media (min-width:860px){ .statsGrid{grid-template-columns: 1fr 1fr} }
+    canvas{width:100%;max-width:100%;border:1px solid #eee;border-radius:12px;background:#fff}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}
+    .table th{font-size:12px;color:#444}
   </style>
 </head>
 
@@ -177,12 +182,12 @@
     <div class="tabs">
       <button class="tab active" id="tabManage">Eingabe & Verwaltung</button>
       <button class="tab" id="tabLearn">Abfrage</button>
+      <button class="tab" id="tabStats">Statistik</button>
       <button class="tab" id="tabData">Import/Export</button>
     </div>
 
     <div class="muted small" id="statusLine"></div>
     <div class="muted small" id="binsTop"></div>
-
     <div class="muted small" id="storageInfo"></div>
     <div class="muted small" id="jsAlive">JS: …</div>
   </div>
@@ -295,12 +300,13 @@
     <section class="card">
       <div class="flashWrap">
 
-        <!-- SETUP (Modus/Richtung/Start) -->
+        <!-- SETUP -->
         <div id="learnSetup">
           <div class="row" style="align-items:flex-end">
             <div style="flex:1 1 260px;min-width:220px">
               <label for="learnMode">Lernmodus</label>
               <select id="learnMode"></select>
+              <div class="muted small" style="margin-top:6px" id="problemExplain"></div>
             </div>
 
             <div style="flex:0 0 auto">
@@ -329,7 +335,7 @@
           <div class="muted" id="learnHint">Wähle Modus + Richtung und drücke „Start (Vollbild)“.</div>
         </div>
 
-        <!-- QUIZ-ONLY (Vollbild: oben zurück + Statistik, sonst nur Karte + Leiste) -->
+        <!-- QUIZ -->
         <div id="learnQuizOnly">
           <div class="quizTopBar">
             <div class="quizTopLeft">
@@ -367,6 +373,66 @@
     </section>
   </div>
 
+  <!-- Stats -->
+  <div id="viewStats" style="display:none">
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <div>
+          <h2 style="margin:0;font-size:16px">Statistik</h2>
+          <div class="muted small">Auswertung aus deinen Abfragen (pro Richtung + insgesamt).</div>
+        </div>
+        <div class="row">
+          <button id="btnRecalcStats" type="button">Statistik aktualisieren</button>
+          <button id="btnResetStats" class="danger" type="button">Statistik zurücksetzen</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="kpi" style="grid-template-columns:repeat(4,1fr)">
+        <div class="box"><div class="muted">Abfragen gesamt</div><div class="num" id="sTotalSeen">0</div></div>
+        <div class="box"><div class="muted">Trefferquote gesamt</div><div class="num" id="sTotalAcc">0%</div></div>
+        <div class="box"><div class="muted">Problemkarten</div><div class="num" id="sProblemCount">0</div></div>
+        <div class="box"><div class="muted">Problem Hardcore</div><div class="num" id="sProblemHard">0</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="statsGrid">
+        <div>
+          <div class="muted small" style="margin-bottom:6px">Karten pro Fach (1–20)</div>
+          <canvas id="chartBins" width="900" height="420"></canvas>
+        </div>
+        <div>
+          <div class="muted small" style="margin-bottom:6px">Trefferquote nach Fach (wenn Daten vorhanden)</div>
+          <canvas id="chartAccByBin" width="900" height="420"></canvas>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <details open>
+        <summary>Top-Problemkarten (Variante C)</summary>
+        <div class="muted small" style="margin:8px 0 10px 0">
+          Sortiert nach Problem-Score (mehr = schwieriger).
+        </div>
+        <table class="table" id="problemTable">
+          <thead>
+            <tr>
+              <th>Score</th>
+              <th>Fach</th>
+              <th>Vorderseite</th>
+              <th>Rückseite</th>
+              <th>Fehlquote</th>
+              <th>Letzte 10</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </details>
+    </section>
+  </div>
+
   <!-- Data -->
   <div id="viewData" style="display:none">
     <section class="card">
@@ -379,7 +445,7 @@
 
       <h3 style="margin:0 0 8px 0;font-size:14px">Backup</h3>
       <p class="muted small" style="margin-top:0">
-        Backup-Datei enthält alle Daten (inkl. Fach & Status pro Richtung).
+        Backup-Datei enthält alle Daten (inkl. Fach, Status und Statistik).
       </p>
       <div class="fileRow">
         <button id="btnBackupJson" class="primary" type="button">Backup herunterladen (JSON)</button>
@@ -431,7 +497,14 @@
   // 20 Fächer: 1..20
   const MIN_BIN = 1;
   const MAX_BIN = 20;
-  const SPECIAL_START = 18; // 18-20 Sonderlogik (nur untereinander rutschen)
+  const SPECIAL_START = 18; // 18-20 Sonderlogik
+
+  // Problemkarten (Variante C) - Schwellwerte
+  const PROB_MIN_SEEN = 5;          // erst ab so vielen Abfragen bewerten
+  const PROB_ERR_RATE = 0.40;       // Fehlquote >= 40% gilt als Problem
+  const PROB_RECENT_WRONGS = 3;     // mindestens 3 Fehler in den letzten 10
+  const PROB_HARD_ERR_RATE = 0.60;  // Hardcore
+  const PROB_HARD_RECENT_WRONGS = 5;
 
   let {cards, sourceKey} = loadWithMigration();
   cards = (cards||[]).map(ensureCardShape);
@@ -480,16 +553,27 @@
     card.id = (typeof card.id==="string" && card.id) ? card.id : uid();
     card.front = (card.front||"").toString();
     card.back  = (card.back||"").toString();
-
-    // Migration alter Daten (z.B. Fach 0 -> 1)
     card.stars = normalizeStars(card.stars);
 
     const legacy = normResult(card.lastResult);
     if(!card.lastResultFront) card.lastResultFront = (card.lastResult ? legacy : "unknown");
     if(!card.lastResultBack)  card.lastResultBack  = (card.lastResult ? legacy : "unknown");
-
     card.lastResultFront = normResult(card.lastResultFront);
     card.lastResultBack  = normResult(card.lastResultBack);
+
+    // Statistikfelder (neu)
+    card.seenFront = Number.isFinite(card.seenFront) ? card.seenFront : 0;
+    card.seenBack  = Number.isFinite(card.seenBack)  ? card.seenBack  : 0;
+    card.okFront   = Number.isFinite(card.okFront)   ? card.okFront   : 0;
+    card.okBack    = Number.isFinite(card.okBack)    ? card.okBack    : 0;
+    card.badFront  = Number.isFinite(card.badFront)  ? card.badFront  : 0;
+    card.badBack   = Number.isFinite(card.badBack)   ? card.badBack   : 0;
+
+    card.last10Front = Array.isArray(card.last10Front) ? card.last10Front.slice(0,10) : [];
+    card.last10Back  = Array.isArray(card.last10Back)  ? card.last10Back.slice(0,10)  : [];
+    // normalisieren auf "K"/"U"
+    card.last10Front = card.last10Front.map(x => x==="K" ? "K" : "U");
+    card.last10Back  = card.last10Back.map(x => x==="K" ? "K" : "U");
 
     card.createdAt = Number.isFinite(card.createdAt) ? card.createdAt : now;
     card.updatedAt = Number.isFinite(card.updatedAt) ? card.updatedAt : now;
@@ -500,13 +584,7 @@
   function stripLeadingArticle(s){
     s = (s||"").toString().trim();
     s = s.replace(/^[„"'\(\[\{]+/g, "").trim();
-
-    const articles = [
-      "der","die","das","ein","eine","einen","einem","einer","eines",
-      "el","la","los","las","un","una","unos","unas",
-      "a","an","the"
-    ];
-
+    const articles = ["der","die","das","ein","eine","einen","einem","einer","eines","el","la","los","las","un","una","unos","unas","a","an","the"];
     const lower = s.toLowerCase();
     for(const art of articles){
       const prefix = art + " ";
@@ -528,6 +606,8 @@
     if(filter==="unknownFront") return list.filter(c => c.lastResultFront === "unknown");
     if(filter==="unknownBack") return list.filter(c => c.lastResultBack === "unknown");
     if(filter==="unknownAny") return list.filter(c => c.lastResultFront === "unknown" || c.lastResultBack === "unknown");
+    if(filter==="problem") return list.filter(c => isProblemCardC(c, "mixed", false));
+    if(filter==="problemHard") return list.filter(c => isProblemCardC(c, "mixed", true));
     if(filter.startsWith("star")){
       const n = Number(filter.slice(4));
       if(Number.isFinite(n)) return list.filter(c => normalizeStars(c.stars) === n);
@@ -575,11 +655,16 @@
     ui.tab = tab;
     document.getElementById("tabManage").classList.toggle("active", tab==="manage");
     document.getElementById("tabLearn").classList.toggle("active", tab==="learn");
+    document.getElementById("tabStats").classList.toggle("active", tab==="stats");
     document.getElementById("tabData").classList.toggle("active", tab==="data");
+
     document.getElementById("viewManage").style.display = tab==="manage" ? "" : "none";
     document.getElementById("viewLearn").style.display = tab==="learn" ? "" : "none";
+    document.getElementById("viewStats").style.display = tab==="stats" ? "" : "none";
     document.getElementById("viewData").style.display = tab==="data" ? "" : "none";
+
     updateStatusLine();
+    if(tab==="stats") renderStats();
   }
 
   function countsByStars(){
@@ -671,20 +756,27 @@
       pillStars.className="pill";
       pillStars.textContent = `Fach: ${card.stars}`;
 
-      meta.appendChild(pillDE); meta.appendChild(pillES); meta.appendChild(pillStars);
+      const pillProb = document.createElement("span");
+      pillProb.className="pill";
+      const isProb = isProblemCardC(card, "mixed", false);
+      pillProb.textContent = isProb ? "Problemkarte ⚠️" : "—";
+      if(isProb){ pillProb.style.borderColor="#b00020"; pillProb.style.color="#b00020"; }
+
+      meta.appendChild(pillDE); meta.appendChild(pillES); meta.appendChild(pillStars); meta.appendChild(pillProb);
       left.appendChild(front); left.appendChild(back); left.appendChild(meta);
 
       const right = document.createElement("div");
       right.className="row";
       right.style.gap="6px";
 
+      // Fach-Kreise (kleiner im Verzeichnis!)
       const starWrap = document.createElement("div");
       starWrap.className="stars";
       for(let n=MIN_BIN;n<=MAX_BIN;n++){
         const b=document.createElement("button");
         b.type="button";
         const isSpecial = n>=SPECIAL_START;
-        b.className="starBtn dotBtn"+(isSpecial?" special":"")+(normalizeStars(card.stars)===n?" active":"");
+        b.className="starBtn dotBtn smallListDot"+(isSpecial?" special":"")+(normalizeStars(card.stars)===n?" active":"");
         b.textContent = String(n);
         b.addEventListener("click", ()=>{
           card.stars=n; card.updatedAt=Date.now();
@@ -838,6 +930,79 @@
     report.innerHTML = `<span class="ok">Fertig:</span> ${added} hinzugefügt` + (skipped ? ` · <span class="warn">${skipped} übersprungen</span>` : "");
   }
 
+  /* =========================
+     Problemkarten (Variante C)
+     =========================
+     Problemkarte, wenn:
+     - Fach >= 18
+     ODER
+     - (in Richtung) zuletzt falsch (Status unknown)
+     ODER
+     - Fehlquote >= 40% (ab min 5 Versuchen)
+     ODER
+     - >= 3 Fehler in den letzten 10
+  */
+  function sideStats(card, side){
+    const seen = side==="front" ? card.seenFront : card.seenBack;
+    const ok   = side==="front" ? card.okFront   : card.okBack;
+    const bad  = side==="front" ? card.badFront  : card.badBack;
+    const last10 = side==="front" ? card.last10Front : card.last10Back;
+    const errRate = seen>0 ? (bad/seen) : 0;
+    const recentWrongs = last10.filter(x=>x==="U").length;
+    return {seen, ok, bad, errRate, recentWrongs, last10};
+  }
+
+  function isProblemCardC(card, direction, hardcore){
+    const c = ensureCardShape(card);
+
+    // 1) Fach >= 18 -> immer Problem
+    if(normalizeStars(c.stars) >= SPECIAL_START) return true;
+
+    const threshErr = hardcore ? PROB_HARD_ERR_RATE : PROB_ERR_RATE;
+    const threshRecent = hardcore ? PROB_HARD_RECENT_WRONGS : PROB_RECENT_WRONGS;
+
+    // helper: check one side
+    function checkSide(side){
+      const st = sideStats(c, side);
+      const status = side==="front" ? c.lastResultFront : c.lastResultBack;
+      const statusBad = (status==="unknown");
+
+      const statsBad =
+        (st.seen >= PROB_MIN_SEEN && st.errRate >= threshErr) ||
+        (st.recentWrongs >= threshRecent);
+
+      return statusBad || statsBad;
+    }
+
+    if(direction==="front") return checkSide("front");
+    if(direction==="back") return checkSide("back");
+
+    // mixed
+    return checkSide("front") || checkSide("back");
+  }
+
+  function problemScore(card){
+    const c = ensureCardShape(card);
+    // Score = Basis aus Fach + Fehlquote/Recent
+    let score = 0;
+
+    // Fachgewicht: höheres Fach leicht höher gewichten, aber nicht dominieren
+    score += Math.max(0, normalizeStars(c.stars) - 10) * 0.5;
+
+    const f = sideStats(c, "front");
+    const b = sideStats(c, "back");
+
+    // Fehlquote und recent wrongs addieren
+    score += (f.seen>=PROB_MIN_SEEN ? f.errRate*10 : 0) + (f.recentWrongs*0.8);
+    score += (b.seen>=PROB_MIN_SEEN ? b.errRate*10 : 0) + (b.recentWrongs*0.8);
+
+    // zuletzt unknown in einer Richtung extra
+    if(c.lastResultFront==="unknown") score += 1.2;
+    if(c.lastResultBack==="unknown") score += 1.2;
+
+    return Math.round(score*10)/10;
+  }
+
   function passLearnMode(card){
     const m = ui.learnMode;
     if(m==="all") return true;
@@ -846,6 +1011,13 @@
       if(ui.direction==="front") return card.lastResultFront==="unknown";
       if(ui.direction==="back")  return card.lastResultBack==="unknown";
       return (card.lastResultFront==="unknown" || card.lastResultBack==="unknown");
+    }
+
+    if(m==="problem"){
+      return isProblemCardC(card, ui.direction, false);
+    }
+    if(m==="problemHard"){
+      return isProblemCardC(card, ui.direction, true);
     }
 
     if(m.startsWith("star")){
@@ -883,7 +1055,6 @@
       return false;
     }
   }
-
   async function exitFullscreen(){
     try{
       if(document.fullscreenElement && document.exitFullscreen){
@@ -894,16 +1065,26 @@
 
   function showQuizUI(on){
     ui.quizActive = !!on;
-
     document.getElementById("learnSetup").style.display = on ? "none" : "";
     document.getElementById("learnQuizOnly").style.display = on ? "flex" : "none";
-
     document.body.classList.toggle("quizFullscreen", on);
 
     const flashCard = document.getElementById("flashCard");
     const bar = document.getElementById("learnBar");
     flashCard.style.display = on ? "" : "none";
     bar.style.display = on ? "" : "none";
+  }
+
+  function explainProblemMode(){
+    const m = document.getElementById("learnMode").value;
+    const el = document.getElementById("problemExplain");
+    if(m==="problem"){
+      el.textContent = "Problemkarten (Variante C): Fach 18–20 ODER zuletzt falsch ODER hohe Fehlquote ODER viele Fehler in den letzten 10.";
+    } else if(m==="problemHard"){
+      el.textContent = "Hardcore: strengere Schwellen (sehr hohe Fehlquote / viele aktuelle Fehler) + Fach 18–20.";
+    } else {
+      el.textContent = "";
+    }
   }
 
   function startQuiz(){
@@ -926,9 +1107,8 @@
     ui.correct = 0;
     ui.wrong = 0;
 
-    // Quiz-UI anzeigen + Vollbild anfordern
     showQuizUI(true);
-    enterFullscreen(); // wenn der Browser es zulässt (muss aus Klick heraus passieren)
+    enterFullscreen();
 
     showCurrent();
   }
@@ -947,7 +1127,6 @@
     ui.currentSide = side;
 
     const showFront = (side === "front");
-
     document.getElementById("quizPrompt").textContent = showFront ? ui.currentCard.front : ui.currentCard.back;
 
     const ansEl = document.getElementById("quizAnswer");
@@ -987,19 +1166,23 @@
     showCurrent();
   }
 
-  // Logik:
-  // Fächer 1..17: gewusst => runter (-1), nicht gewusst => rauf (+1)
-  // Aus Fach 17 geht "nicht gewusst" nach 18 (ist +1).
-  // Fächer 18..20: nur untereinander (gewusst => runter bis 18, nicht gewusst => rauf bis 20)
+  // Fachlogik
+  // 1..17: gewusst => runter (-1), nicht gewusst => rauf (+1)
+  // 18..20: nur untereinander (gewusst => runter bis 18, nicht gewusst => rauf bis 20)
   function computeNextBin(cur, known){
     cur = normalizeStars(cur);
-
     if(cur >= SPECIAL_START){
       if(known) return Math.max(SPECIAL_START, cur - 1);
       return Math.min(MAX_BIN, cur + 1);
     }
     if(known) return Math.max(MIN_BIN, cur - 1);
-    return Math.min(MAX_BIN, cur + 1);
+    return Math.min(MAX_BIN, cur + 1); // aus 17 wird bei falsch automatisch 18
+  }
+
+  function pushLast10(arr, mark){
+    const a = Array.isArray(arr) ? arr.slice() : [];
+    a.unshift(mark);
+    return a.slice(0,10);
   }
 
   function markKnown(known){
@@ -1008,23 +1191,36 @@
     const idx = cards.findIndex(c=>c.id===ui.currentCard.id);
     if(idx<0) return;
 
-    const key = (ui.currentSide==="front") ? "lastResultFront" : "lastResultBack";
-    cards[idx][key] = known ? "known" : "unknown";
+    const side = ui.currentSide; // front/back
+    const keyStatus = (side==="front") ? "lastResultFront" : "lastResultBack";
+    cards[idx][keyStatus] = known ? "known" : "unknown";
 
+    // Statistik: zählen
+    if(side==="front"){
+      cards[idx].seenFront++;
+      if(known) cards[idx].okFront++; else cards[idx].badFront++;
+      cards[idx].last10Front = pushLast10(cards[idx].last10Front, known ? "K" : "U");
+    } else {
+      cards[idx].seenBack++;
+      if(known) cards[idx].okBack++; else cards[idx].badBack++;
+      cards[idx].last10Back = pushLast10(cards[idx].last10Back, known ? "K" : "U");
+    }
+
+    // Fachbewegung
     const cur = normalizeStars(cards[idx].stars);
     cards[idx].stars = computeNextBin(cur, known);
 
-    // Statistik für diese Runde
     if(known) ui.correct++; else ui.wrong++;
 
     cards[idx].updatedAt = Date.now();
+    cards[idx] = ensureCardShape(cards[idx]);
     persistCardsOnly();
 
     updateStatusLine();
     renderKpis();
     renderCardList();
-
     updateTopProgress();
+
     nextCard();
   }
 
@@ -1035,6 +1231,7 @@
 
     cards[idx].stars = normalizeStars(n);
     cards[idx].updatedAt = Date.now();
+    cards[idx] = ensureCardShape(cards[idx]);
     persistCardsOnly();
 
     document.querySelectorAll("#flashStarsBtns .starBtn").forEach(btn=>{
@@ -1141,7 +1338,7 @@
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
   }
   function backupDownload(){
-    const payload = { app:"vokabeltrainer", version:4, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
+    const payload = { app:"vokabeltrainer", version:5, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
     downloadJson(makeFileName("vokabeltrainer_backup","json"), payload);
   }
   function restoreFromFile(){
@@ -1177,6 +1374,11 @@
             stars: normalizeStars(c.stars),
             lastResultFront: normResult(c.lastResultFront || c.lastResult || "unknown"),
             lastResultBack:  normResult(c.lastResultBack  || c.lastResult || "unknown"),
+            // Statistik mit übernehmen, falls vorhanden:
+            seenFront: c.seenFront, seenBack: c.seenBack,
+            okFront: c.okFront, okBack: c.okBack,
+            badFront: c.badFront, badBack: c.badBack,
+            last10Front: c.last10Front, last10Back: c.last10Back,
             createdAt: (c && Number.isFinite(c.createdAt)) ? c.createdAt : Date.now(),
             updatedAt: (c && Number.isFinite(c.updatedAt)) ? c.updatedAt : Date.now(),
           }));
@@ -1231,6 +1433,8 @@
     addOpt("unknownFront","Nur ❌ DE→ES");
     addOpt("unknownBack","Nur ❌ ES→DE");
     addOpt("unknownAny","Nur ❌ (irgendeine Richtung)");
+    addOpt("problem","Problemkarten (C)");
+    addOpt("problemHard","Problemkarten Hardcore");
     for(let n=MIN_BIN;n<=MAX_BIN;n++){
       addOpt("star"+n, "Nur Fach " + n);
     }
@@ -1246,6 +1450,8 @@
     };
     addOpt("all","Alle Karten");
     addOpt("unknown","Nicht gewusst (abhängig von Richtung)");
+    addOpt("problem","Problemkarten (Variante C)");
+    addOpt("problemHard","Problemkarten Hardcore");
     for(let n=MIN_BIN;n<=MAX_BIN;n++){
       addOpt("star"+n, "Fach " + n);
     }
@@ -1269,7 +1475,6 @@
       const b=document.createElement("button");
       b.type="button";
       const isSpecial = n>=SPECIAL_START;
-      // kleine Kreise in Abfrage
       b.className="starBtn dotBtn smallDot"+(isSpecial?" special":"");
       b.dataset.stars=String(n);
       b.textContent=String(n);
@@ -1279,28 +1484,206 @@
   }
 
   function leaveQuizToManage(){
-    // Vollbild verlassen (falls aktiv) und zurück zur Eingabe
     showQuizUI(false);
     exitFullscreen();
     setActiveTab("manage");
   }
 
-  // Fullscreen-Exit erkennen (z.B. Android Back Gesture)
   document.addEventListener("fullscreenchange", ()=>{
     const fs = !!document.fullscreenElement;
     if(!fs && ui.quizActive){
-      // Der Nutzer hat Fullscreen verlassen -> wir bleiben in Abfrage, aber ohne Header-Verstecken
       document.body.classList.remove("quizFullscreen");
     }
   });
 
+  /* ===========
+     STATISTIK
+     =========== */
+  function sumAllStats(){
+    let seen=0, ok=0, bad=0;
+    for(const c0 of cards){
+      const c = ensureCardShape(c0);
+      seen += c.seenFront + c.seenBack;
+      ok   += c.okFront + c.okBack;
+      bad  += c.badFront + c.badBack;
+    }
+    const acc = seen>0 ? (ok/seen) : 0;
+    return {seen, ok, bad, acc};
+  }
+
+  function accOfCard(card){
+    const c = ensureCardShape(card);
+    const seen = c.seenFront + c.seenBack;
+    const bad = c.badFront + c.badBack;
+    return { seen, errRate: seen>0 ? bad/seen : 0 };
+  }
+
+  function binAcc(bin){
+    const inBin = cards.map(ensureCardShape).filter(c=>normalizeStars(c.stars)===bin);
+    let seen=0, ok=0;
+    for(const c of inBin){
+      seen += c.seenFront + c.seenBack;
+      ok   += c.okFront + c.okBack;
+    }
+    return {seen, acc: seen>0 ? ok/seen : null};
+  }
+
+  function drawBarChart(canvas, labels, values, valueFormatter){
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+
+    const padL = 44, padR = 16, padT = 18, padB = 42;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+
+    // axes
+    ctx.strokeStyle = "#ddd";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT+innerH);
+    ctx.lineTo(padL+innerW, padT+innerH);
+    ctx.stroke();
+
+    const maxVal = Math.max(1, ...values.map(v => (v==null?0:v)));
+    const n = labels.length;
+    const barW = innerW / n;
+
+    // bars
+    for(let i=0;i<n;i++){
+      const v = values[i];
+      const val = (v==null?0:v);
+      const barH = (val/maxVal) * innerH;
+
+      const x = padL + i*barW + 2;
+      const y = padT + innerH - barH;
+      const bw = Math.max(2, barW - 4);
+
+      ctx.fillStyle = "#111"; // keine "Fancy"-Farbe, schlicht schwarz
+      ctx.fillRect(x, y, bw, barH);
+
+      // x labels
+      ctx.fillStyle = "#444";
+      ctx.font = "11px system-ui";
+      const lab = labels[i];
+      const lx = padL + i*barW + barW/2;
+      const ly = padT + innerH + 22;
+      ctx.textAlign = "center";
+      ctx.fillText(lab, lx, ly);
+
+      // value label (optional)
+      if(valueFormatter){
+        ctx.fillStyle = "#666";
+        ctx.font = "10px system-ui";
+        const txt = valueFormatter(v);
+        ctx.fillText(txt, lx, y-6);
+      }
+    }
+  }
+
+  function renderProblemTable(){
+    const tbody = document.querySelector("#problemTable tbody");
+    tbody.innerHTML = "";
+
+    const probs = cards
+      .map(ensureCardShape)
+      .filter(c => isProblemCardC(c, "mixed", false))
+      .map(c => {
+        const {seen, errRate} = accOfCard(c);
+        const last10 = (c.last10Front.concat(c.last10Back)).slice(0,10).join("");
+        return {c, score: problemScore(c), seen, errRate, last10};
+      })
+      .sort((a,b)=>b.score-a.score)
+      .slice(0, 30);
+
+    for(const p of probs){
+      const tr = document.createElement("tr");
+      const tdScore = document.createElement("td"); tdScore.textContent = String(p.score);
+      const tdBin = document.createElement("td"); tdBin.textContent = String(p.c.stars);
+      const tdF = document.createElement("td"); tdF.textContent = p.c.front;
+      const tdB = document.createElement("td"); tdB.textContent = p.c.back;
+      const tdER = document.createElement("td"); tdER.textContent = p.seen>=PROB_MIN_SEEN ? Math.round(p.errRate*100)+"%" : "—";
+      const tdL10 = document.createElement("td"); tdL10.textContent = p.last10 ? p.last10 : "—";
+      tr.appendChild(tdScore);
+      tr.appendChild(tdBin);
+      tr.appendChild(tdF);
+      tr.appendChild(tdB);
+      tr.appendChild(tdER);
+      tr.appendChild(tdL10);
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderStats(){
+    // KPIs
+    const sum = sumAllStats();
+    document.getElementById("sTotalSeen").textContent = String(sum.seen);
+    document.getElementById("sTotalAcc").textContent = sum.seen ? (Math.round(sum.acc*100)+"%") : "0%";
+
+    const probCount = cards.map(ensureCardShape).filter(c => isProblemCardC(c, "mixed", false)).length;
+    const probHard = cards.map(ensureCardShape).filter(c => isProblemCardC(c, "mixed", true)).length;
+    document.getElementById("sProblemCount").textContent = String(probCount);
+    document.getElementById("sProblemHard").textContent = String(probHard);
+
+    // Chart 1: counts per bin
+    const bins = countsByStars();
+    const labels = [];
+    const counts = [];
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      labels.push(String(n));
+      counts.push(bins[n] || 0);
+    }
+    drawBarChart(document.getElementById("chartBins"), labels, counts, (v)=>String(v));
+
+    // Chart 2: accuracy per bin (only if seen>0)
+    const accVals = [];
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      const a = binAcc(n);
+      accVals.push(a.acc==null ? 0 : Math.round(a.acc*100)); // in %
+    }
+    drawBarChart(
+      document.getElementById("chartAccByBin"),
+      labels,
+      accVals,
+      (v)=> (v==null ? "—" : (String(v)+"%"))
+    );
+
+    renderProblemTable();
+  }
+
+  function resetStats(){
+    if(!confirm("Statistik wirklich zurücksetzen? (Karten bleiben erhalten, nur Zähler werden gelöscht)")) return;
+    cards = cards.map(c=>{
+      const cc = ensureCardShape(c);
+      cc.seenFront = 0; cc.seenBack = 0;
+      cc.okFront = 0; cc.okBack = 0;
+      cc.badFront = 0; cc.badBack = 0;
+      cc.last10Front = []; cc.last10Back = [];
+      cc.updatedAt = Date.now();
+      return cc;
+    });
+    saveCards();
+    renderStats();
+    alert("Statistik zurückgesetzt.");
+  }
+
+  /* ===========
+     INIT
+     =========== */
+  function refreshAll(){
+    updateStatusLine();
+    renderKpis();
+    renderCardList();
+  }
+
   // Tabs
   document.getElementById("tabManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
+  document.getElementById("tabStats").addEventListener("click", ()=>setActiveTab("stats"));
   document.getElementById("tabData").addEventListener("click", ()=>setActiveTab("data"));
-  document.getElementById("btnBackToManage2").addEventListener("click", ()=>setActiveTab("manage"));
 
-  // Learn Back Buttons
+  document.getElementById("btnBackToManage2").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("btnBackToManageSetup").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("btnBackToManage").addEventListener("click", leaveQuizToManage);
 
@@ -1326,6 +1709,7 @@
   document.getElementById("btnUnknown").addEventListener("click", ()=>markKnown(false));
   document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
   document.getElementById("btnEditLearn").addEventListener("click", editCurrentInLearn);
+  document.getElementById("learnMode").addEventListener("change", explainProblemMode);
 
   // Data
   document.getElementById("btnBackupJson").addEventListener("click", backupDownload);
@@ -1335,7 +1719,83 @@
   document.getElementById("btnExportJson").addEventListener("click", exportJsonToField);
   document.getElementById("btnReset").addEventListener("click", resetAll);
 
-  // Init dynamische UI-Teile
+  // Stats
+  document.getElementById("btnRecalcStats").addEventListener("click", renderStats);
+  document.getElementById("btnResetStats").addEventListener("click", resetStats);
+
+  // Dynamic selects
+  function buildFilterOptions(){
+    const sel = document.getElementById("filter");
+    sel.innerHTML = "";
+    const addOpt = (v,t)=>{
+      const o=document.createElement("option");
+      o.value=v; o.textContent=t;
+      sel.appendChild(o);
+    };
+    addOpt("all","Alle");
+    addOpt("unknownFront","Nur ❌ DE→ES");
+    addOpt("unknownBack","Nur ❌ ES→DE");
+    addOpt("unknownAny","Nur ❌ (irgendeine Richtung)");
+    addOpt("problem","Problemkarten (C)");
+    addOpt("problemHard","Problemkarten Hardcore");
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      addOpt("star"+n, "Nur Fach " + n);
+    }
+  }
+  function buildLearnModeOptions(){
+    const sel = document.getElementById("learnMode");
+    sel.innerHTML = "";
+    const addOpt = (v,t)=>{
+      const o=document.createElement("option");
+      o.value=v; o.textContent=t;
+      sel.appendChild(o);
+    };
+    addOpt("all","Alle Karten");
+    addOpt("unknown","Nicht gewusst (abhängig von Richtung)");
+    addOpt("problem","Problemkarten (Variante C)");
+    addOpt("problemHard","Problemkarten Hardcore");
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      addOpt("star"+n, "Fach " + n);
+    }
+  }
+  function buildBulkDefaultStars(){
+    const sel = document.getElementById("bulkDefaultStars");
+    sel.innerHTML = "";
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      const o=document.createElement("option");
+      o.value=String(n);
+      o.textContent="Fach " + n;
+      sel.appendChild(o);
+    }
+  }
+  function rebuildNewStarsUI(){
+    const wrap = document.getElementById("newStars");
+    wrap.innerHTML = "";
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      const b = document.createElement("button");
+      b.className = "starBtn dotBtn" + (n>=SPECIAL_START ? " special" : "") + (n===ui.newStars ? " active" : "");
+      b.dataset.stars = String(n);
+      b.type = "button";
+      b.textContent = String(n);
+      b.addEventListener("click", ()=> setNewStars(n));
+      wrap.appendChild(b);
+    }
+  }
+  function buildFlashStarsButtons(){
+    const wrap = document.getElementById("flashStarsBtns");
+    wrap.innerHTML = "";
+    for(let n=MIN_BIN;n<=MAX_BIN;n++){
+      const b=document.createElement("button");
+      b.type="button";
+      const isSpecial = n>=SPECIAL_START;
+      b.className="starBtn dotBtn smallDot"+(isSpecial?" special":"");
+      b.dataset.stars=String(n);
+      b.textContent=String(n);
+      b.addEventListener("click", ()=> setStars(n));
+      wrap.appendChild(b);
+    }
+  }
+
   buildFilterOptions();
   buildLearnModeOptions();
   buildBulkDefaultStars();
@@ -1347,8 +1807,9 @@
   setNewResultFront("unknown");
   setNewResultBack("unknown");
   document.getElementById("filter").value = "all";
+  explainProblemMode();
 
-  // Migration: sicherstellen, dass es keine Fach-0 Karten gibt
+  // Migration: sicherstellen, dass Fach 0 nicht existiert
   let changed=false;
   cards = cards.map(c=>{
     const cc = ensureCardShape(c);
@@ -1358,8 +1819,6 @@
   if(changed) persistCardsOnly();
 
   refreshAll();
-
-  // Standard: in Abfrage erst Setup zeigen
   showQuizUI(false);
 })();
 </script>
