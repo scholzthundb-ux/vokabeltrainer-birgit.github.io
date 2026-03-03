@@ -1,9 +1,10 @@
+
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vokabeltrainer (1–20 Fächer · Sonderlogik 18–20 · Backup/TXT)</title>
+  <title>Vokabeltrainer (1–20 Fächer · Sonderlogik 18–20 · Vollbild-Abfrage)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7ef;z-index:50}
@@ -63,6 +64,12 @@
     .dotBtn.special{border-color:#b00020;color:#b00020}
     .dotBtn.special.active{background:#b00020;color:#fff;border-color:#b00020}
 
+    /* Kleinere Kreise in der Abfrage (wie gewünscht) */
+    .dotBtn.smallDot{
+      width:28px;height:28px;
+      font-size:12px;
+    }
+
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .kpi .box{border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
     .kpi .num{font-size:18px;font-weight:900}
@@ -77,23 +84,44 @@
     .bins{display:flex;gap:6px;flex-wrap:wrap}
     .bin{font-size:11px;border:1px solid #ddd;border-radius:999px;padding:4px 10px;background:#fafafa}
 
-    /* Lernkarte */
+    /* Lernbereich */
     .flashWrap{display:flex;flex-direction:column;gap:12px}
-    .flashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+
+    /* Setup-Bereich (Modus/Start) */
+    #learnSetup{display:block}
+    #learnQuizOnly{display:none}
+
+    /* Vollbild-Layout: nur Karte + Controls */
+    #learnQuizOnly{
+      height: calc(100vh - 90px);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    /* Headerzeile im Quiz */
+    .quizTopBar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .quizTopLeft{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .quizTopRight{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+    /* Karte soll den Rest ausfüllen */
     .flashCard{
-      height: calc(100vh - 440px);
-      min-height: 44vh;
+      flex:1 1 auto;
+      min-height: 0;
       display:flex;flex-direction:column;justify-content:center;align-items:center;
-      border:1px solid #e7e7ef;border-radius:18px;background:#f3eadc; /* helles beige */
+      border:1px solid #e7e7ef;border-radius:18px;
+      background:#f3eadc; /* helles beige */
       padding:18px;text-align:center;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
       cursor:pointer;
       position:relative;
-      z-index:1;
-    }
-    @media (max-width:480px){
-      .flashCard{ height: calc(100vh - 500px); min-height: 40vh; }
+      overflow:hidden;
     }
     .flashPrompt{
       font-size:30px;font-weight:950;line-height:1.15;
@@ -105,15 +133,17 @@
       max-width:880px;word-break:break-word;
       color:#222;
       display:none;
-      background:rgba(255,255,255,0.7);border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
+      background:rgba(255,255,255,0.7);
+      border:1px dashed #d8d9e6;border-radius:14px;padding:14px;
       width:100%;
       box-sizing:border-box;
     }
     .flashAnswer.show{display:block}
     .tapHint{margin-top:10px;font-size:12px;color:#666}
 
-    /* Controls immer über der Karte, immer klickbar */
+    /* Controls unten, nur am Rand sichtbar */
     .learnBar{
+      flex:0 0 auto;
       position:sticky;
       bottom:10px;
       z-index:1000;
@@ -131,6 +161,12 @@
 
     .fileRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input[type="file"]{max-width:100%}
+
+    /* Vollbild: Header ausblenden, damit wirklich nur Karte + Leiste zu sehen ist */
+    body.quizFullscreen header{display:none}
+    body.quizFullscreen main.wrap{max-width:none;padding:12px 12px}
+    body.quizFullscreen #viewLearn .card{border:none;background:transparent;padding:0}
+    body.quizFullscreen #learnQuizOnly{height: calc(100vh - 24px);}
   </style>
 </head>
 
@@ -258,66 +294,75 @@
   <div id="viewLearn" style="display:none">
     <section class="card">
       <div class="flashWrap">
-        <div class="flashTop">
-          <div class="row" style="gap:10px">
-            <span class="pill" id="progressPill">0 / 0</span>
-            <span class="pill" id="modePill">Modus: —</span>
-            <span class="pill" id="dirPill">Richtung: —</span>
+
+        <!-- SETUP (Modus/Richtung/Start) -->
+        <div id="learnSetup">
+          <div class="row" style="align-items:flex-end">
+            <div style="flex:1 1 260px;min-width:220px">
+              <label for="learnMode">Lernmodus</label>
+              <select id="learnMode"></select>
+            </div>
+
+            <div style="flex:0 0 auto">
+              <label for="direction">Richtung</label>
+              <select id="direction">
+                <option value="front">Vorderseite → Rückseite (DE→ES)</option>
+                <option value="back">Rückseite → Vorderseite (ES→DE)</option>
+                <option value="mixed">Gemischt (beide Richtungen zufällig)</option>
+              </select>
+            </div>
+
+            <div style="flex:0 0 auto">
+              <label for="order">Reihenfolge</label>
+              <select id="order">
+                <option value="random">Zufällig</option>
+                <option value="oldest">Älteste zuerst</option>
+                <option value="newest">Neueste zuerst</option>
+              </select>
+            </div>
+
+            <button class="primary" id="btnStart" type="button">Start (Vollbild)</button>
+            <button id="btnBackToManageSetup" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
           </div>
-          <button id="btnBackToManage" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
+
+          <div class="divider"></div>
+          <div class="muted" id="learnHint">Wähle Modus + Richtung und drücke „Start (Vollbild)“.</div>
         </div>
 
-        <div class="row" style="align-items:flex-end">
-          <div style="flex:1 1 260px;min-width:220px">
-            <label for="learnMode">Lernmodus</label>
-            <select id="learnMode"></select>
+        <!-- QUIZ-ONLY (Vollbild: oben zurück + Statistik, sonst nur Karte + Leiste) -->
+        <div id="learnQuizOnly">
+          <div class="quizTopBar">
+            <div class="quizTopLeft">
+              <button id="btnBackToManage" class="ghost" type="button">⬅️ Zurück zur Eingabe</button>
+            </div>
+            <div class="quizTopRight">
+              <span class="pill" id="progressTop">0/0</span>
+              <span class="pill" id="scoreTop">richtig 0 · falsch 0</span>
+            </div>
           </div>
 
-          <div style="flex:0 0 auto">
-            <label for="direction">Richtung</label>
-            <select id="direction">
-              <option value="front">Vorderseite → Rückseite (DE→ES)</option>
-              <option value="back">Rückseite → Vorderseite (ES→DE)</option>
-              <option value="mixed">Gemischt (beide Richtungen zufällig)</option>
-            </select>
+          <div class="flashCard" id="flashCard" style="display:none" role="button" aria-label="Karte antippen für Antwort">
+            <div class="flashPrompt" id="quizPrompt">—</div>
+            <div class="flashAnswer" id="quizAnswer">—</div>
+            <div class="tapHint">Tippe auf die Karte, um die Antwort ein-/auszublenden.</div>
           </div>
 
-          <div style="flex:0 0 auto">
-            <label for="order">Reihenfolge</label>
-            <select id="order">
-              <option value="random">Zufällig</option>
-              <option value="oldest">Älteste zuerst</option>
-              <option value="newest">Neueste zuerst</option>
-            </select>
-          </div>
+          <div class="learnBar" id="learnBar" style="display:none">
+            <div class="flashControls" id="flashControls">
+              <button id="btnKnown" type="button">✅ Gewusst</button>
+              <button id="btnUnknown" type="button">❌ Nicht gewusst</button>
+              <button id="btnEditLearn" type="button">✏️ Bearbeiten</button>
+              <button id="btnDelete" class="danger" type="button">🗑️ Löschen</button>
+            </div>
 
-          <button class="primary" id="btnStart" type="button">Start</button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="flashCard" id="flashCard" style="display:none" role="button" aria-label="Karte antippen für Antwort">
-          <div class="flashPrompt" id="quizPrompt">—</div>
-          <div class="flashAnswer" id="quizAnswer">—</div>
-          <div class="tapHint">Tippe auf die Karte, um die Antwort ein-/auszublenden.</div>
-        </div>
-
-        <div class="learnBar" id="learnBar" style="display:none">
-          <div class="flashControls" id="flashControls">
-            <button id="btnKnown" type="button">✅ Gewusst</button>
-            <button id="btnUnknown" type="button">❌ Nicht gewusst</button>
-            <button id="btnEditLearn" type="button">✏️ Bearbeiten</button>
-            <button id="btnDelete" class="danger" type="button">🗑️ Löschen</button>
-          </div>
-
-          <div class="flashStars" id="flashStars">
-            <span class="pill">Fach:</span>
-            <span id="flashStarsBtns" class="stars" style="gap:6px"></span>
-            <span class="pill" id="statusHint">Status: —</span>
+            <div class="flashStars" id="flashStars">
+              <span class="pill">Fach:</span>
+              <span id="flashStarsBtns" class="stars" style="gap:6px"></span>
+              <span class="pill" id="statusHint">Status: —</span>
+            </div>
           </div>
         </div>
 
-        <div class="muted" id="learnHint">Wähle Modus + Richtung und drücke „Start“.</div>
       </div>
     </section>
   </div>
@@ -422,8 +467,6 @@
     n = Number(n);
     if(Number.isNaN(n)) return MIN_BIN;
     n = Math.round(n);
-
-    // Migration alter Daten: 0 -> 1
     if(n < MIN_BIN) return MIN_BIN;
     if(n > MAX_BIN) return MAX_BIN;
     return n;
@@ -438,7 +481,7 @@
     card.front = (card.front||"").toString();
     card.back  = (card.back||"").toString();
 
-    // Fach-Migration (alt 0..7 -> neu 1..20)
+    // Migration alter Daten (z.B. Fach 0 -> 1)
     card.stars = normalizeStars(card.stars);
 
     const legacy = normResult(card.lastResult);
@@ -485,7 +528,6 @@
     if(filter==="unknownFront") return list.filter(c => c.lastResultFront === "unknown");
     if(filter==="unknownBack") return list.filter(c => c.lastResultBack === "unknown");
     if(filter==="unknownAny") return list.filter(c => c.lastResultFront === "unknown" || c.lastResultBack === "unknown");
-
     if(filter.startsWith("star")){
       const n = Number(filter.slice(4));
       if(Number.isFinite(n)) return list.filter(c => normalizeStars(c.stars) === n);
@@ -523,7 +565,10 @@
     currentSide: "front",
     learnMode: "all",
     order: "random",
-    revealed: false
+    revealed: false,
+    correct: 0,
+    wrong: 0,
+    quizActive: false
   };
 
   function setActiveTab(tab){
@@ -550,11 +595,8 @@
     const total = cards.length;
     document.getElementById("statusLine").textContent = `Karten: ${total}`;
     const bins = countsByStars();
-
     let parts = [];
-    for(let n=MIN_BIN;n<=MAX_BIN;n++){
-      parts.push(`${n}=${bins[n]}`);
-    }
+    for(let n=MIN_BIN;n<=MAX_BIN;n++) parts.push(`${n}=${bins[n]}`);
     document.getElementById("binsTop").textContent = `Fächer: ` + parts.join(" · ");
     document.getElementById("storageInfo").textContent = `Speicher: ${PRIMARY_KEY} (gefunden aus: ${sourceKey})`;
   }
@@ -653,54 +695,6 @@
         starWrap.appendChild(b);
       }
 
-      const btnKnownFront = document.createElement("button");
-      btnKnownFront.type="button";
-      btnKnownFront.textContent="✅ DE→ES";
-      btnKnownFront.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultFront="known";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
-      const btnUnknownFront = document.createElement("button");
-      btnUnknownFront.type="button";
-      btnUnknownFront.textContent="❌ DE→ES";
-      btnUnknownFront.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultFront="unknown";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
-      const btnKnownBack = document.createElement("button");
-      btnKnownBack.type="button";
-      btnKnownBack.textContent="✅ ES→DE";
-      btnKnownBack.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultBack="known";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
-      const btnUnknownBack = document.createElement("button");
-      btnUnknownBack.type="button";
-      btnUnknownBack.textContent="❌ ES→DE";
-      btnUnknownBack.addEventListener("click", ()=>{
-        const idx = cards.findIndex(x=>x.id===card.id);
-        if(idx>=0){
-          cards[idx].lastResultBack="unknown";
-          cards[idx].updatedAt=Date.now();
-          saveCards();
-        }
-      });
-
       const btnEdit = document.createElement("button");
       btnEdit.type="button";
       btnEdit.textContent="✏️";
@@ -731,10 +725,6 @@
       });
 
       right.appendChild(starWrap);
-      right.appendChild(btnKnownFront);
-      right.appendChild(btnUnknownFront);
-      right.appendChild(btnKnownBack);
-      right.appendChild(btnUnknownBack);
       right.appendChild(btnEdit);
       right.appendChild(btnDel);
 
@@ -848,19 +838,6 @@
     report.innerHTML = `<span class="ok">Fertig:</span> ${added} hinzugefügt` + (skipped ? ` · <span class="warn">${skipped} übersprungen</span>` : "");
   }
 
-  function labelMode(m){
-    if(m==="all") return "Alle";
-    if(m==="unknown") return "Nicht gewusst";
-    if(m.startsWith("star")) return "Fach " + m.slice(4);
-    return "—";
-  }
-  function labelDir(d){
-    if(d==="front") return "DE→ES";
-    if(d==="back") return "ES→DE";
-    if(d==="mixed") return "Gemischt";
-    return "—";
-  }
-
   function passLearnMode(card){
     const m = ui.learnMode;
     if(m==="all") return true;
@@ -882,13 +859,51 @@
     if(!ui.currentCard) return;
     const dirLabel = (ui.currentSide==="front") ? "DE→ES" : "ES→DE";
     const res = (ui.currentSide==="front") ? ui.currentCard.lastResultFront : ui.currentCard.lastResultBack;
-
-    let extra = "";
-    const cur = normalizeStars(ui.currentCard.stars);
-    if(cur>=SPECIAL_START) extra = " · Sonderlogik 18–20";
-
     document.getElementById("statusHint").textContent =
-      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}${extra}`;
+      `Status ${dirLabel}: ${res==="known" ? "gewusst ✅" : "nicht gewusst ❌"} · Fach: ${ui.currentCard.stars}`;
+  }
+
+  function updateTopProgress(){
+    const total = ui.quizList.length;
+    const cur = total ? (ui.quizIndex+1) : 0;
+    document.getElementById("progressTop").textContent = `${cur}/${total}`;
+    document.getElementById("scoreTop").textContent = `richtig ${ui.correct} · falsch ${ui.wrong}`;
+  }
+
+  async function enterFullscreen(){
+    try{
+      if(document.fullscreenElement) return true;
+      const el = document.documentElement;
+      if(el.requestFullscreen){
+        await el.requestFullscreen({navigationUI:"hide"});
+        return true;
+      }
+      return false;
+    }catch{
+      return false;
+    }
+  }
+
+  async function exitFullscreen(){
+    try{
+      if(document.fullscreenElement && document.exitFullscreen){
+        await document.exitFullscreen();
+      }
+    }catch{}
+  }
+
+  function showQuizUI(on){
+    ui.quizActive = !!on;
+
+    document.getElementById("learnSetup").style.display = on ? "none" : "";
+    document.getElementById("learnQuizOnly").style.display = on ? "flex" : "none";
+
+    document.body.classList.toggle("quizFullscreen", on);
+
+    const flashCard = document.getElementById("flashCard");
+    const bar = document.getElementById("learnBar");
+    flashCard.style.display = on ? "" : "none";
+    bar.style.display = on ? "" : "none";
   }
 
   function startQuiz(){
@@ -899,17 +914,8 @@
     let pool = cards.map(ensureCardShape).filter(passLearnMode);
     pool = sortList(pool, ui.order);
 
-    const hint = document.getElementById("learnHint");
-    const flashCard = document.getElementById("flashCard");
-    const bar = document.getElementById("learnBar");
-
     if(pool.length===0){
-      hint.innerHTML = `<span class="warn">Keine Karten gefunden.</span>`;
-      flashCard.style.display = "none";
-      bar.style.display="none";
-      document.getElementById("progressPill").textContent = "0 / 0";
-      document.getElementById("modePill").textContent = "Modus: —";
-      document.getElementById("dirPill").textContent = "Richtung: —";
+      alert("Keine Karten gefunden.");
       return;
     }
 
@@ -917,13 +923,12 @@
     ui.quizIndex = 0;
     ui.currentCard = null;
     ui.revealed = false;
+    ui.correct = 0;
+    ui.wrong = 0;
 
-    hint.textContent = "";
-    flashCard.style.display="";
-    bar.style.display="";
-
-    document.getElementById("modePill").textContent = "Modus: " + labelMode(ui.learnMode);
-    document.getElementById("dirPill").textContent = "Richtung: " + labelDir(ui.direction);
+    // Quiz-UI anzeigen + Vollbild anfordern
+    showQuizUI(true);
+    enterFullscreen(); // wenn der Browser es zulässt (muss aus Klick heraus passieren)
 
     showCurrent();
   }
@@ -943,7 +948,6 @@
 
     const showFront = (side === "front");
 
-    document.getElementById("progressPill").textContent = `${ui.quizIndex+1} / ${ui.quizList.length}`;
     document.getElementById("quizPrompt").textContent = showFront ? ui.currentCard.front : ui.currentCard.back;
 
     const ansEl = document.getElementById("quizAnswer");
@@ -958,6 +962,7 @@
     });
 
     updateLearnStatusHint();
+    updateTopProgress();
   }
 
   function toggleReveal(){
@@ -966,20 +971,23 @@
     document.getElementById("quizAnswer").classList.toggle("show", ui.revealed);
   }
 
+  function finishQuiz(){
+    updateTopProgress();
+    document.getElementById("quizPrompt").textContent = "Fertig ✅";
+    document.getElementById("quizAnswer").classList.remove("show");
+  }
+
   function nextCard(){
     if(ui.quizList.length===0) return;
     ui.quizIndex++;
     if(ui.quizIndex >= ui.quizList.length){
-      document.getElementById("learnHint").textContent = "Fertig ✅";
-      document.getElementById("flashCard").style.display="none";
-      document.getElementById("learnBar").style.display="none";
-      document.getElementById("progressPill").textContent = `${ui.quizList.length} / ${ui.quizList.length}`;
+      finishQuiz();
       return;
     }
     showCurrent();
   }
 
-  // Neue Logik:
+  // Logik:
   // Fächer 1..17: gewusst => runter (-1), nicht gewusst => rauf (+1)
   // Aus Fach 17 geht "nicht gewusst" nach 18 (ist +1).
   // Fächer 18..20: nur untereinander (gewusst => runter bis 18, nicht gewusst => rauf bis 20)
@@ -987,12 +995,9 @@
     cur = normalizeStars(cur);
 
     if(cur >= SPECIAL_START){
-      // Sonderbereich 18..20
       if(known) return Math.max(SPECIAL_START, cur - 1);
       return Math.min(MAX_BIN, cur + 1);
     }
-
-    // Normalbereich 1..17
     if(known) return Math.max(MIN_BIN, cur - 1);
     return Math.min(MAX_BIN, cur + 1);
   }
@@ -1009,6 +1014,9 @@
     const cur = normalizeStars(cards[idx].stars);
     cards[idx].stars = computeNextBin(cur, known);
 
+    // Statistik für diese Runde
+    if(known) ui.correct++; else ui.wrong++;
+
     cards[idx].updatedAt = Date.now();
     persistCardsOnly();
 
@@ -1016,30 +1024,7 @@
     renderKpis();
     renderCardList();
 
-    if(ui.learnMode === "unknown"){
-      let stillUnknown = true;
-      if(ui.direction==="front") stillUnknown = (cards[idx].lastResultFront==="unknown");
-      else if(ui.direction==="back") stillUnknown = (cards[idx].lastResultBack==="unknown");
-      else stillUnknown = (cards[idx].lastResultFront==="unknown" || cards[idx].lastResultBack==="unknown");
-
-      if(!stillUnknown){
-        const delId = cards[idx].id;
-        ui.quizList = ui.quizList.filter(id => id !== delId);
-
-        if(ui.quizList.length === 0){
-          document.getElementById("learnHint").textContent = "Fertig ✅";
-          document.getElementById("flashCard").style.display="none";
-          document.getElementById("learnBar").style.display="none";
-          document.getElementById("progressPill").textContent = "0 / 0";
-          ui.currentCard = null;
-          return;
-        }
-        if(ui.quizIndex >= ui.quizList.length) ui.quizIndex = ui.quizList.length - 1;
-        showCurrent();
-        return;
-      }
-    }
-
+    updateTopProgress();
     nextCard();
   }
 
@@ -1093,10 +1078,7 @@
     saveCards();
 
     if(ui.quizList.length === 0){
-      document.getElementById("learnHint").textContent = "Keine Karten mehr in dieser Runde.";
-      document.getElementById("flashCard").style.display="none";
-      document.getElementById("learnBar").style.display="none";
-      document.getElementById("progressPill").textContent = "0 / 0";
+      finishQuiz();
       ui.currentCard = null;
       return;
     }
@@ -1159,7 +1141,7 @@
     document.getElementById("exportOut").value = JSON.stringify(cards, null, 2);
   }
   function backupDownload(){
-    const payload = { app:"vokabeltrainer", version:3, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
+    const payload = { app:"vokabeltrainer", version:4, exportedAt:new Date().toISOString(), cards: cards.map(ensureCardShape) };
     downloadJson(makeFileName("vokabeltrainer_backup","json"), payload);
   }
   function restoreFromFile(){
@@ -1239,7 +1221,6 @@
   function buildFilterOptions(){
     const sel = document.getElementById("filter");
     sel.innerHTML = "";
-
     const addOpt = (v,t)=>{
       const o=document.createElement("option");
       o.value=v; o.textContent=t;
@@ -1250,7 +1231,6 @@
     addOpt("unknownFront","Nur ❌ DE→ES");
     addOpt("unknownBack","Nur ❌ ES→DE");
     addOpt("unknownAny","Nur ❌ (irgendeine Richtung)");
-
     for(let n=MIN_BIN;n<=MAX_BIN;n++){
       addOpt("star"+n, "Nur Fach " + n);
     }
@@ -1289,7 +1269,8 @@
       const b=document.createElement("button");
       b.type="button";
       const isSpecial = n>=SPECIAL_START;
-      b.className="starBtn dotBtn tight"+(isSpecial?" special":"");
+      // kleine Kreise in Abfrage
+      b.className="starBtn dotBtn smallDot"+(isSpecial?" special":"");
       b.dataset.stars=String(n);
       b.textContent=String(n);
       b.addEventListener("click", ()=> setStars(n));
@@ -1297,37 +1278,56 @@
     }
   }
 
+  function leaveQuizToManage(){
+    // Vollbild verlassen (falls aktiv) und zurück zur Eingabe
+    showQuizUI(false);
+    exitFullscreen();
+    setActiveTab("manage");
+  }
+
+  // Fullscreen-Exit erkennen (z.B. Android Back Gesture)
+  document.addEventListener("fullscreenchange", ()=>{
+    const fs = !!document.fullscreenElement;
+    if(!fs && ui.quizActive){
+      // Der Nutzer hat Fullscreen verlassen -> wir bleiben in Abfrage, aber ohne Header-Verstecken
+      document.body.classList.remove("quizFullscreen");
+    }
+  });
+
+  // Tabs
   document.getElementById("tabManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("tabLearn").addEventListener("click", ()=>setActiveTab("learn"));
   document.getElementById("tabData").addEventListener("click", ()=>setActiveTab("data"));
-  document.getElementById("btnBackToManage").addEventListener("click", ()=>setActiveTab("manage"));
   document.getElementById("btnBackToManage2").addEventListener("click", ()=>setActiveTab("manage"));
 
+  // Learn Back Buttons
+  document.getElementById("btnBackToManageSetup").addEventListener("click", ()=>setActiveTab("manage"));
+  document.getElementById("btnBackToManage").addEventListener("click", leaveQuizToManage);
+
+  // Eingabe
   document.getElementById("btnAdd").addEventListener("click", ()=>addCard(false));
   document.getElementById("btnAddStay").addEventListener("click", ()=>addCard(true));
-
   document.getElementById("btnSetUnknownFront").addEventListener("click", ()=> setNewResultFront("unknown"));
   document.getElementById("btnSetKnownFront").addEventListener("click", ()=> setNewResultFront("known"));
   document.getElementById("btnSetUnknownBack").addEventListener("click", ()=> setNewResultBack("unknown"));
   document.getElementById("btnSetKnownBack").addEventListener("click", ()=> setNewResultBack("known"));
-
   document.getElementById("btnBulkAdd").addEventListener("click", bulkAdd);
   document.getElementById("btnBulkClear").addEventListener("click", ()=>{
     document.getElementById("bulkEntry").value="";
     document.getElementById("bulkReport").textContent="";
   });
-
   document.getElementById("search").addEventListener("input", e=>{ ui.search=e.target.value; renderCardList(); });
   document.getElementById("filter").addEventListener("change", e=>{ ui.filter=e.target.value; renderCardList(); });
 
+  // Abfrage
   document.getElementById("btnStart").addEventListener("click", startQuiz);
   document.getElementById("flashCard").addEventListener("click", toggleReveal);
-
   document.getElementById("btnKnown").addEventListener("click", ()=>markKnown(true));
   document.getElementById("btnUnknown").addEventListener("click", ()=>markKnown(false));
   document.getElementById("btnDelete").addEventListener("click", deleteCurrentFromLearn);
   document.getElementById("btnEditLearn").addEventListener("click", editCurrentInLearn);
 
+  // Data
   document.getElementById("btnBackupJson").addEventListener("click", backupDownload);
   document.getElementById("btnRestoreJson").addEventListener("click", restoreFromFile);
   document.getElementById("btnExportTxtAll").addEventListener("click", exportTxtAll);
@@ -1348,7 +1348,7 @@
   setNewResultBack("unknown");
   document.getElementById("filter").value = "all";
 
-  // Migration: wenn irgendwo noch Fach 0 steckt, korrigieren
+  // Migration: sicherstellen, dass es keine Fach-0 Karten gibt
   let changed=false;
   cards = cards.map(c=>{
     const cc = ensureCardShape(c);
@@ -1358,6 +1358,9 @@
   if(changed) persistCardsOnly();
 
   refreshAll();
+
+  // Standard: in Abfrage erst Setup zeigen
+  showQuizUI(false);
 })();
 </script>
 </body>
